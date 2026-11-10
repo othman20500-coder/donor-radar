@@ -1,0 +1,4 @@
+Options -Indexes
+<FilesMatch "^(?:app\.js|config\.json|package(?:-lock)?\.json|build-client\.cjs|extract-catalog\.cjs|.*\.sqlite(?:-(?:wal|shm))?|\.env(?:\..*)?)$">
+  Require all denied
+</FilesMatch>

@@ -1,0 +1,35 @@
+# رادار المانحين على Render: خدمة Node بلا حزم، وبياناته وعروضه على قرص دائم.
+# لا أسرار هنا. التفاصيل والتحويل والرجوع في RENDER.md.
+services:
+  - type: web
+    name: donor-radar
+    runtime: node
+    region: frankfurt
+    plan: starter # الخطة المجانية تنام وبلا قرص
+    branch: main
+    autoDeploy: true
+    buildCommand: echo "لا خطوة بناء؛ الواجهة مبنية في private/app على القرص"
+    startCommand: node scripts/render-start.cjs
+    healthCheckPath: /login
+    disk:
+      name: radar-data
+      mountPath: /data
+      sizeGB: 2 # العروض نحو 150 ميجابايت اليوم
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      - key: NODE_ENV
+        value: production
+      - key: RADAR_DATA_DIR
+        value: /data/radar-data
+      # https://donor-radar.onrender.com أثناء التجربة، ثم https://radar.othmana.sa عند التحويل
+      - key: PUBLIC_URL
+        sync: false
+      # رابط المُصدِّر المؤقت على cPanel ورمزه لمرة واحدة (يُحذفان بعد التحويل)
+      - key: RADAR_IMPORT_URL
+        sync: false
+      - key: RADAR_IMPORT_TOKEN
+        sync: false
+      # قيمة جديدة يوم التحويل (cutover-1) تسحب نسخة نهائية فوق نسخة التجربة
+      - key: RADAR_IMPORT_NONCE
+        sync: false

@@ -1,0 +1,6 @@
+{
+  "NODE_ENV": "production",
+  "PUBLIC_URL": "https://radar.example.org",
+  "RADAR_DATA_DIR": "/home/CPANEL_ACCOUNT/radar-data",
+  "PORT": 3000
+}

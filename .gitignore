@@ -1,0 +1,11 @@
+# البيانات والعروض لا تدخل Git: على القرص في Render، وعلى cPanel خارج المستودع
+config.json
+private/
+data/
+node_modules/
+stderr.log
+tmp/
+*.zip
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
