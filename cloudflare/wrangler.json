@@ -31,6 +31,12 @@
           "database_id": "f7665d9e-7921-49d4-ab6d-076f0c67726c",
           "migrations_dir": "migrations"
         }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "BACKUPS",
+          "bucket_name": "donor-radar-v13-dev-backups"
+        }
       ]
     }
   }

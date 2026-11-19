@@ -1,7 +1,7 @@
 
 # Cloudflare development V13 acceptance — 2026-11-19
 
-Status: development deployment works; acceptance is conditional, not production approval.
+Status: listed technical development acceptance checks passed, including R2. User acceptance and production approval remain separate.
 
 - URL: https://donor-radar-v13-dev.othman20500.workers.dev
 - D1: donor-radar-v13-dev, f7665d9e-7921-49d4-ab6d-076f0c67726c.
@@ -31,9 +31,11 @@ Original package and verified Git bundle preserved outside this worktree. SQL ex
 
 Snapshot v2 includes users, meta, audit, records and monitoring tables. backup.mjs restoreFresh rejects a nonempty target atomically and omits sessions. Local test restored into a second D1 binding and checked foreign keys. Recovery must only target a newly created development database. Never use the production name or database ID.
 
-## Outstanding blocker
+## R2 acceptance completed (2026-11-19)
 
-Cloudflare R2 is not enabled (API code 10042). The account holder must enable it in the dashboard; no billing enrollment was performed. Therefore in-app backup create/list/download and /api/import are unavailable (503). Import deliberately requires a successful pre-import backup. Local SQL backup is available but does not make these UI features pass acceptance. Finish these tests after creating and binding a dedicated development R2 bucket. No production rollout is approved.
+The user enabled R2. Dedicated bucket donor-radar-v13-dev-backups is bound as BACKUPS only in env.dev. r2.dev public access is disabled and no custom domains are connected. Actual remote tests passed: create/list/download, anonymous/viewer denial, snapshot v2 restore to a fresh local D1 with all table counts matching and no foreign-key errors or sessions, import preview and write with a pre-import backup, viewer rejection and stale revision rejection. Test data was restored to the pre-test state. The first test cleanup attempted an invalid zero financial target; cleanup was corrected to remove only the known test record, then the complete test passed. All 10 local tests passed again. Browser backup creation returned 201 and the saved backup list rendered. See r2-acceptance.mjs and local r2-results.json.
+
+No production routing or main-branch changes. Live scanning remains disabled. Deployment version: ebc7c326-aa15-443d-a83f-66c326c6a952.
 
 ## Access
 
