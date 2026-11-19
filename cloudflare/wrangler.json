@@ -21,8 +21,8 @@
         "APP_ENV": "development",
         "APP_NAME": "donor-radar-v13-dev",
         "PUBLIC_URL": "https://donor-radar-v13-dev.othman20500.workers.dev",
-        "LIVE_SCAN_ENABLED": "false",
-        "REVIEWED_SOURCE_URLS": "[]"
+        "LIVE_SCAN_ENABLED": "true",
+        "REVIEWED_SOURCE_URLS": "[\"https://www.gov.uk/guidance/find-government-grants\"]"
       },
       "d1_databases": [
         {
@@ -37,7 +37,12 @@
           "binding": "BACKUPS",
           "bucket_name": "donor-radar-v13-dev-backups"
         }
-      ]
+      ],
+      "triggers": {
+        "crons": [
+          "0 */6 * * *"
+        ]
+      }
     }
   }
 }

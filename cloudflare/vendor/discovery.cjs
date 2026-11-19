@@ -11,7 +11,7 @@ function discoverLinks(html,base){
  const found=new Map();const re=/<a\b([^>]*?)>([\s\S]*?)<\/a\s*>/gi;let m;
  while((m=re.exec(html))!==null){const href=/\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')/i.exec(m[1]);if(!href)continue;
  const title=plain(m[2]).slice(0,250);if(title.length<5||!GRANT.test(title))continue;
- let u;try{u=new URL(entities(href[1]??href[2]),baseUrl);u=sourceUrl(u.toString());}catch{continue;}
+ let u;try{u=new URL(entities(href[1]??href[2]),baseUrl);u.hash='';for(const k of [...u.searchParams.keys()])if(/^utm_|^(fbclid|gclid)$/i.test(k))u.searchParams.delete(k);u=sourceUrl(u.toString());}catch{continue;}
  if(new URL(u).origin!==new URL(baseUrl).origin)continue;
  if(!found.has(u))found.set(u,{title,sourceUrl:u,opensAt:null,closesAt:null,verifiedOpen:false,confirmedClosed:false,confidence:'candidate_only',evidence:'linked_title',needsHumanReview:true});
  if(found.size>=MAX_CANDIDATES)break;

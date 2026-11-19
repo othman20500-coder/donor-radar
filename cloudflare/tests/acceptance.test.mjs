@@ -22,7 +22,7 @@ before(async()=>{
  db=await mf.getD1Database('DB');
  const sql=await readFile(new URL('../migrations/0001.sql',import.meta.url),'utf8');
  // D1 exec accepts individual lines; schema uses one statement per line.
- await db.exec(sql);
+ await db.exec(sql);await db.exec(await readFile(new URL('../migrations/0002.sql',import.meta.url),'utf8'));
  await seed('admin','admin');await seed('editor','editor');await seed('viewer','viewer');
 });
 after(async()=>{await mf?.dispose();});
@@ -88,6 +88,7 @@ test('complete snapshot restores data, accounts and audit into fresh D1 without 
  const {snapshot,restoreFresh}=await import('../backup.mjs');const data=await snapshot(db);
  assert.ok(data.tables.users[0].password_hash);assert.equal(data.tables.sessions,undefined);
  const restored=await mf.getD1Database('RESTORE');await restored.exec(await readFile(new URL('../migrations/0001.sql',import.meta.url),'utf8'));
+ await restored.exec(await readFile(new URL('../migrations/0002.sql',import.meta.url),'utf8'));
  await restoreFresh(restored,data);
  for(const table of ['users','records','audit','sources','source_policies'])assert.equal((await restored.prepare('SELECT count(*) n FROM '+table).first()).n,data.tables[table].length);
  assert.equal((await restored.prepare('SELECT count(*) n FROM sessions').first()).n,0);
@@ -110,4 +111,56 @@ test('new users must change password; old sessions and CSRF tokens cannot contin
  assert.equal((await request('/api/session',{session:b})).status,401);
  assert.equal((await request('/api/auth/logout',{method:'POST',session:a,body:{}})).status,403);
  assert.equal((await request('/api/state',{session:{...a,csrfToken:changed.csrfToken}})).status,200);
+});
+
+test('approved discoveries are shared; applications are independent and versioned',async()=>{
+ const admin=await login('admin');await request('/api/users/editor',{method:'PATCH',session:admin,body:{role:'editor'}});const editor=await login('editor'),viewer=await login('viewer');
+ const source=(await db.prepare('SELECT id FROM sources LIMIT 1').first()).id;
+ await db.prepare("INSERT INTO opportunities(id,source_id,title,source_url,review_status,created_at) VALUES('flow-one',?,'منحة اختبار','https://example.org/grants/one','pending',?)").bind(source,new Date().toISOString()).run();
+ let state=await (await request('/api/state',{session:admin})).json();assert.ok(Array.isArray(state.discoveries),'shared discoveries missing');assert.ok(!state.discoveries.some(x=>x.id==='flow-one'));
+ const review={decision:'approved',expectedVersion:0,donorId:'associations-support-fund',topics:['youth']};
+ assert.equal((await request('/api/workflow/opportunities/flow-one',{method:'POST',session:editor,body:review})).status,403);
+ let r=await request('/api/workflow/opportunities/flow-one',{method:'POST',session:admin,body:review});assert.equal(r.status,200,await r.clone().text());
+ state=await (await request('/api/state',{session:admin})).json();assert.ok(state.discoveries.some(x=>x.id==='flow-one'&&x.key==='cw_mon_flow-one'));
+ const input={opportunityId:'flow-one',projectId:'p01',ownerId:'editor',stage:'eval',nextAction:'مراجعة الشروط',dueDate:'2026-12-01',notes:'',expectedVersion:0};
+ assert.equal((await request('/api/workflow/applications',{method:'POST',session:viewer,body:input})).status,403);
+ r=await request('/api/workflow/applications',{method:'POST',session:editor,body:input});assert.equal(r.status,200,await r.clone().text());const app=await r.json();
+ assert.equal((await request('/api/workflow/applications',{method:'POST',session:editor,body:input})).status,409);
+ assert.equal((await request('/api/workflow/applications',{method:'POST',session:editor,body:{...input,projectId:'p02'}})).status,200);
+ assert.equal((await request('/api/workflow/applications',{method:'POST',session:editor,body:{...input,expectedVersion:app.version,stage:'accepted'}})).status,403);
+ state=await (await request('/api/state',{session:admin})).json();assert.equal(state.applications.length,2);
+ assert.equal((await request('/api/records/cw_mon_flow-one',{method:'PUT',session:editor,body:{expectedVersion:0,value:{stage:'eval',owner:'editor',note:'متابعة'}}})).status,200);
+});
+
+test('scheduled discovery is stable, binds detail evidence and preserves reviewed dates on change',async()=>{
+ const {Store}=await import('../store.mjs'),{scheduledScan}=await import('../scheduler.mjs');
+ const catalog=JSON.parse(await readFile(new URL('../../private/catalog.json',import.meta.url),'utf8')),store=new Store(db,catalog),original=globalThis.fetch;let calls=0,changed=false;
+ await db.prepare('UPDATE sources SET enabled=0').run();
+ await db.prepare("INSERT INTO sources(id,name,url,created_at,donor_id) VALUES('schedule-source','Fixture','https://example.org/feed',?,'associations-support-fund')").bind(new Date().toISOString()).run();
+ await db.prepare("INSERT INTO source_policies(source_id,robots_reviewed,terms_reviewed,reviewed_at) VALUES('schedule-source',1,1,?)").bind(new Date().toISOString()).run();
+ const env={APP_ENV:'development',APP_NAME:'donor-radar-v13-dev',LIVE_SCAN_ENABLED:'true',REVIEWED_SOURCE_URLS:JSON.stringify(['https://example.org/feed','https://example.org/detail'])};
+ globalThis.fetch=async url=>{calls++;return new Response(url.endsWith('/feed')?'<html>صفحة منح رسمية للتجربة المحلية فقط <a href="/detail">منحة '+(changed?'عنوان جديد':'المشاريع')+'</a></html>':'<html>إعلان تمويل تجريبي طويل بما يكفي لفحص التفاصيل. deadline: '+(changed?'2027-02-01':'2027-01-01')+'</html>',{headers:{'content-type':'text/html'}});};
+ try{
+ const first=await scheduledScan(store,env,1800000000000);assert.equal(first.results[0].ok,true);assert.equal(calls,2);assert.equal((await scheduledScan(store,env,1800000000000)).duplicate,true);assert.equal(calls,2);
+ const o=await store.one("SELECT * FROM opportunities WHERE source_id='schedule-source'");assert.equal(o.review_status,'pending');const evidence=await store.one('SELECT * FROM evidence WHERE opportunity_id=?',o.id);assert.equal(evidence.closes_at,'2027-01-01');
+ const admin=await login('admin');assert.equal((await request('/api/monitor/evidence/'+evidence.id,{method:'POST',session:admin,body:{decision:'accepted'}})).status,200);
+ let r=await request('/api/workflow/opportunities/'+o.id,{method:'POST',session:admin,body:{decision:'approved',expectedVersion:0,donorId:'associations-support-fund',topics:['youth'],evidenceId:evidence.id}});assert.equal(r.status,200,await r.clone().text());
+ changed=true;await scheduledScan(store,env,1800021600000);assert.equal((await store.one("SELECT count(*) n FROM opportunities WHERE source_id='schedule-source'")).n,1);assert.equal((await store.one('SELECT closes_at FROM opportunities WHERE id=?',o.id)).closes_at,'2027-01-01');assert.ok((await store.one('SELECT count(*) n FROM alerts WHERE reference_id=?',o.id)).n>0);
+ await db.prepare("UPDATE source_policies SET robots_reviewed=0 WHERE source_id='schedule-source'").run();const before=calls;await scheduledScan(store,env,1800043200000);assert.equal(calls,before);
+ const snap=(await import('../backup.mjs'));const backup=await snap.snapshot(db);assert.equal(backup.tables.applications.length,2);assert.ok(backup.tables.scheduled_runs.length>=2);
+ }finally{globalThis.fetch=original;}
+});
+
+test('withdrawn opportunities retain restorable history and hidden projects cannot start applications',async()=>{
+ const admin=await login('admin');
+ const {Store}=await import('../store.mjs'),{effectiveProjects}=await import('../workflow.mjs');const catalog=JSON.parse(await readFile(new URL('../../private/catalog.json',import.meta.url),'utf8'));
+ assert.ok(!effectiveProjects(catalog,{pm_p01:{visibility:'hidden'}}).some(p=>p.id==='p01'));assert.ok(!effectiveProjects(catalog,{pm_p01:{lifecycle:'trashed'}}).some(p=>p.id==='p01'));assert.ok(!effectiveProjects(catalog,{pm_p01:{lifecycle:'archived'}}).some(p=>p.id==='p01'));assert.equal(effectiveProjects(catalog,{pm_p01:{fields:{name:'تعديل محفوظ'}}}).find(p=>p.id==='p01').name,'تعديل محفوظ');
+ const r=await request('/api/workflow/opportunities/flow-one',{method:'POST',session:admin,body:{decision:'rejected',expectedVersion:1,donorId:'associations-support-fund',topics:['youth']}});assert.equal(r.status,200);
+ const store=new Store(db,catalog),backup=await store.exportBackup();assert.ok(backup.state['cw_mon_flow-one']);assert.ok((await store.previewImport(backup)).total>0);assert.ok(!(await store.state()).discoveries.some(o=>o.id==='flow-one'));assert.equal((await store.state()).applications.filter(a=>a.opportunity_id==='flow-one').length,2);
+});
+
+test('new accepted evidence can clear a formerly reviewed deadline',async()=>{
+ const admin=await login('admin'),o=await db.prepare("SELECT * FROM opportunities WHERE source_id='schedule-source'").first();
+ await db.prepare("INSERT INTO evidence(id,source_id,url,content_hash,excerpt,opens_at,review_status,created_at,opportunity_id) VALUES('replacement-evidence',?,?,?,'opening date: 2027-03-01','2027-03-01','accepted',?,?)").bind(o.source_id,o.source_url,'replacement-hash',new Date().toISOString(),o.id).run();
+ const r=await request('/api/workflow/opportunities/'+o.id,{method:'POST',session:admin,body:{decision:'approved',expectedVersion:o.version,donorId:'associations-support-fund',topics:['youth'],evidenceId:'replacement-evidence'}});assert.equal(r.status,200);const updated=await db.prepare('SELECT * FROM opportunities WHERE id=?').bind(o.id).first();assert.equal(updated.closes_at,null);assert.equal(updated.opens_at,'2027-03-01');
 });
