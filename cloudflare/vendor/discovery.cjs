@@ -1,0 +1,27 @@
+'use strict';
+// Conservative candidate discovery: no dates guessed, no automatic approval.
+const {sourceUrl}=require('./pure.cjs');
+const GRANT=/(منح(?:ة|)|تمويل|دعم المشاريع|التقديم|grant|funding|apply)/i;
+const MAX_CANDIDATES=30;
+function entities(s){return s.replace(/&amp;/gi,'&').replace(/&quot;/gi,'"').replace(/&#39;/gi,"'").replace(/&nbsp;/gi,' ').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>');}
+function plain(s){return entities(String(s).replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,' ').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,' ').replace(/<[^>]*>/g,' ').replace(/\s+/g,' ').trim());}
+function discoverLinks(html,base){
+ const baseUrl=sourceUrl(base);if(typeof html!=='string'||Buffer.byteLength(html)>600000)throw Error('Invalid source document');
+ html=html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi,'').replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi,'');
+ const found=new Map();const re=/<a\b([^>]*?)>([\s\S]*?)<\/a\s*>/gi;let m;
+ while((m=re.exec(html))!==null){const href=/\bhref\s*=\s*(?:"([^"]*)"|'([^']*)')/i.exec(m[1]);if(!href)continue;
+ const title=plain(m[2]).slice(0,250);if(title.length<5||!GRANT.test(title))continue;
+ let u;try{u=new URL(entities(href[1]??href[2]),baseUrl);u=sourceUrl(u.toString());}catch{continue;}
+ if(new URL(u).origin!==new URL(baseUrl).origin)continue;
+ if(!found.has(u))found.set(u,{title,sourceUrl:u,opensAt:null,closesAt:null,verifiedOpen:false,confirmedClosed:false,confidence:'candidate_only',evidence:'linked_title',needsHumanReview:true});
+ if(found.size>=MAX_CANDIDATES)break;
+ }
+ return [...found.values()];
+}
+function stageCandidates(m,sourceId,html){
+ const row=m.db.prepare('SELECT url FROM sources WHERE id=?').get(sourceId);if(!row)throw Error('Unknown source');
+ const candidates=discoverLinks(html,row.url),ids=[];
+ for(const c of candidates){ids.push(m.propose({sourceId,title:c.title,sourceUrl:c.sourceUrl}));}
+ return {sourceId,candidates:candidates.length,ids,requiresApproval:true};
+}
+module.exports={discoverLinks,stageCandidates};

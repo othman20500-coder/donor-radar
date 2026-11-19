@@ -1,0 +1,5 @@
+import fs from 'node:fs';import {randomBytes} from 'node:crypto';import {hashPassword} from './security.mjs';
+const file=new URL('./dev-credentials.json',import.meta.url);if(fs.existsSync(file))throw Error('Credentials already exist; refusing overwrite');
+const at=new Date().toISOString(),users=[];let sql='';const quote=v=>"'"+v.replaceAll("'","''")+"'";
+for(const [username,role] of [['dev-admin','admin'],['dev-editor','editor'],['dev-viewer','viewer']]){const password=randomBytes(24).toString('base64url'),encoded=await hashPassword(password);sql+='INSERT INTO users(id,username,display_name,role,password_hash,created_at,updated_at) VALUES('+[username,username,username,role,encoded,at,at].map(quote).join(',')+');\n';users.push({username,role,password});}
+fs.writeFileSync(file,JSON.stringify({environment:'development',users},null,2),{mode:0o600});fs.writeFileSync(new URL('./dev-seed.sql',import.meta.url),sql,{mode:0o600});console.log('Created credentials locally; no passwords printed.');
