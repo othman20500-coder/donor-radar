@@ -156,3 +156,14 @@ test('snapshots v4 restore into a fresh database and legacy v3 snapshots remain 
  await restoreFresh(fresh,legacy);assert.equal((await fresh.prepare('SELECT count(*) n FROM opportunities').first()).n,data.tables.opportunities.length);assert.equal((await fresh.prepare('SELECT count(*) n FROM application_events').first()).n,0);
  assert.equal((await fresh.prepare("SELECT kind FROM sources LIMIT 1").first()).kind.length>0,true);
 });
+
+test('discovery: index-like pages are labelled, and the same URL seen from a second source is linked as a duplicate',async()=>{
+ const {runScan}=await import('../scheduler.mjs'),{indexLike}=await import('../vendor/discovery.cjs');
+ assert.equal(indexLike('منتجات المنح الاعتيادي','https://x.example/a','https://x.example/b'),true);assert.equal(indexLike('منحة البرامج والمشاريع','https://x.example/a','https://x.example/b'),false);assert.equal(indexLike('منحة البرامج','https://x.example/b','https://x.example/b'),true);
+ const o=await store.one("SELECT * FROM opportunities WHERE source_url='https://feed.example.org/news/1'");assert.ok(o,'opportunity from the feed test must exist');
+ await db.prepare('UPDATE sources SET enabled=0').run();await addSource('idx-src','https://feed.example.org/news/idx.xml','feed');
+ await withFetch(async()=>xml(rss([{title:'منتجات المنح الاعتيادية',link:'https://feed.example.org/news/products'},{title:'منحة المشاريع الشبابية — نسخة ثانية من العنوان',link:'https://feed.example.org/news/1'}])),async()=>{const r=await runScan(store,null,ENV(),3);assert.equal(r.results[0].ok,true);assert.equal(r.results[0].discovery.candidates,2);assert.equal(r.results[0].discovery.duplicates,1);});
+ const idx=await store.one("SELECT * FROM opportunities WHERE source_id='idx-src' AND source_url='https://feed.example.org/news/products'");assert.equal(JSON.parse(idx.fields_json).hint,'index');assert.match((await store.one('SELECT message FROM alerts WHERE reference_id=?',idx.id)).message,/فهرس/);
+ const dup=await store.one("SELECT * FROM opportunities WHERE source_id='idx-src' AND source_url='https://feed.example.org/news/1'");assert.equal(dup.duplicate_of,o.id,'same URL from another source links to the original even when the title differs');
+ await db.prepare('UPDATE sources SET enabled=0').run();
+});

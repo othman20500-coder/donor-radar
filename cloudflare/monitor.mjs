@@ -2,7 +2,7 @@ import {fields} from '../server/validation.js';
 import {fail,now,digest} from './security.mjs';
 import {sourceUrl,readableText} from './vendor/pure.cjs';
 import {extractCandidates,extractDates} from './vendor/extraction.cjs';
-import {titleKey} from './vendor/discovery.cjs';
+import {titleKey,indexLike} from './vendor/discovery.cjs';
 import {parseFeed} from './feed.mjs';
 const MAX_BYTES=512000;
 function url(value){try{return sourceUrl(value);}catch{fail(400,'رابط مصدر غير مسموح.');}}
@@ -29,10 +29,11 @@ export async function recordPage(store,s,source,body,guard){
  const batchKeys=new Map();let duplicates=0;
  for(const c of candidates){
   const id=(await digest(source.id+'\0'+c.sourceUrl)).slice(0,32),key=titleKey(c.title),known=await store.one('SELECT id FROM opportunities WHERE id=?',id);
-  let dup=null;if(!known){dup=batchKeys.get(key)||(await store.one("SELECT id FROM opportunities WHERE title_key=? AND id!=? AND duplicate_of IS NULL AND review_status!='rejected' ORDER BY created_at LIMIT 1",key,id))?.id||null;batchKeys.set(key,dup||id);}
+  let dup=null;if(!known){dup=batchKeys.get(key)||(await store.one("SELECT id FROM opportunities WHERE source_url=? AND id!=? AND duplicate_of IS NULL AND review_status!='rejected' ORDER BY created_at LIMIT 1",c.sourceUrl,id))?.id||(await store.one("SELECT id FROM opportunities WHERE title_key=? AND id!=? AND duplicate_of IS NULL AND review_status!='rejected' ORDER BY created_at LIMIT 1",key,id))?.id||null;batchKeys.set(key,dup||id);}
+  const idx=indexLike(c.title,c.sourceUrl,source.url);
   if(dup)duplicates++;
-  stmts.push(store.q('INSERT OR IGNORE INTO opportunities(id,source_id,title,source_url,created_at,donor_id,title_key,duplicate_of) VALUES(?,?,?,?,?,?,?,?)',id,source.id,c.title,c.sourceUrl,at,source.donor_id||null,key,dup));
-  if(!known)stmts.push(alert(store,'new:'+id,'candidate',id,(dup?'مرشح مكرر محتمل لإعلان قائم: ':'إعلان جديد بانتظار المراجعة: ')+c.title,at));
+  stmts.push(store.q('INSERT OR IGNORE INTO opportunities(id,source_id,title,source_url,created_at,donor_id,title_key,duplicate_of,fields_json) VALUES(?,?,?,?,?,?,?,?,?)',id,source.id,c.title,c.sourceUrl,at,source.donor_id||null,key,dup,idx?'{"hint":"index"}':'{}'));
+  if(!known)stmts.push(alert(store,'new:'+id,'candidate',id,(dup?'مرشح مكرر محتمل لإعلان قائم: ':idx?'صفحة فهرس أو خدمة محتملة (ليست إعلانًا غالبًا): ':'إعلان جديد بانتظار المراجعة: ')+c.title,at));
   if(feed){const dates=extractDates(c.summary||''),found=dates.opensAt||dates.closesAt||dates.warnings.length;
    if(found){const eid=await digest(source.id+'\0'+c.sourceUrl+'\0'+await digest(c.raw));stmts.push(store.q('INSERT OR IGNORE INTO evidence(id,source_id,url,content_hash,excerpt,opens_at,closes_at,conflicts,created_at,opportunity_id) VALUES(?,?,?,?,?,?,?,?,?,?)',eid,source.id,c.sourceUrl,await digest(c.raw),JSON.stringify(dates.evidence),dates.opensAt,dates.closesAt,Number(dates.warnings.length>0),at,id));
     if(known)stmts.push(alert(store,'item:'+eid,'source_changed',id,'تغيّر بيان إعلان مرصود ويحتاج مراجعة: '+c.title,at));}}
@@ -55,7 +56,7 @@ export async function monitorRoute(store,s,p,method,b,env){
   const opens=day(b.opensAt,'تاريخ الفتح'),closes=day(b.closesAt,'تاريخ الإغلاق');if(opens&&closes&&opens>closes)fail(400,'تاريخ الفتح بعد الإغلاق.');
   const id=(await digest(source.id+'\0'+target)).slice(0,32),at=now(),eid=await digest('manual\0'+id+'\0'+b.quote.trim()+'\0'+opens+'\0'+closes),key=titleKey(b.title);
   if(await store.one('SELECT id FROM opportunities WHERE id=?',id))fail(409,'الإعلان مسجل مسبقًا.');
-  const dup=(await store.one("SELECT id FROM opportunities WHERE title_key=? AND duplicate_of IS NULL AND review_status!='rejected' ORDER BY created_at LIMIT 1",key))?.id||null;
+  const dup=(await store.one("SELECT id FROM opportunities WHERE source_url=? AND duplicate_of IS NULL AND review_status!='rejected' ORDER BY created_at LIMIT 1",target))?.id||(await store.one("SELECT id FROM opportunities WHERE title_key=? AND duplicate_of IS NULL AND review_status!='rejected' ORDER BY created_at LIMIT 1",key))?.id||null;
   await store.atomic([store.q('INSERT INTO opportunities(id,source_id,title,source_url,created_at,donor_id,title_key,duplicate_of) VALUES(?,?,?,?,?,?,?,?)',id,source.id,b.title.trim(),target,at,source.donor_id||null,key,dup),store.q('INSERT INTO evidence(id,source_id,url,content_hash,excerpt,opens_at,closes_at,conflicts,created_at,opportunity_id,origin) VALUES(?,?,?,?,?,?,?,?,?,?,?)',eid,source.id,target,eid,JSON.stringify([{field:'manual',quote:b.quote.trim(),by:s.user.displayName}]),opens,closes,0,at,id,'manual'),alert(store,'new:'+id,'candidate',id,(dup?'مرشح مكرر محتمل لإعلان قائم: ':'إعلان مُدخل يدويًا بانتظار المراجعة: ')+b.title.trim(),at),store.audit(s.user,'monitor.manual',id,['title','quote']),store.bump()],{session:s,admin:true});
   return {status:201,data:{id,evidenceId:eid,duplicateOf:dup}};
  }
