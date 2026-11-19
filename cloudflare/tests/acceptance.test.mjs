@@ -22,7 +22,7 @@ before(async()=>{
  db=await mf.getD1Database('DB');
  const sql=await readFile(new URL('../migrations/0001.sql',import.meta.url),'utf8');
  // D1 exec accepts individual lines; schema uses one statement per line.
- await db.exec(sql);await db.exec(await readFile(new URL('../migrations/0002.sql',import.meta.url),'utf8'));
+ await db.exec(sql);await db.exec(await readFile(new URL('../migrations/0002.sql',import.meta.url),'utf8'));await db.exec(await readFile(new URL('../migrations/0003.sql',import.meta.url),'utf8'));
  await seed('admin','admin');await seed('editor','editor');await seed('viewer','viewer');
 });
 after(async()=>{await mf?.dispose();});
@@ -88,7 +88,7 @@ test('complete snapshot restores data, accounts and audit into fresh D1 without 
  const {snapshot,restoreFresh}=await import('../backup.mjs');const data=await snapshot(db);
  assert.ok(data.tables.users[0].password_hash);assert.equal(data.tables.sessions,undefined);
  const restored=await mf.getD1Database('RESTORE');await restored.exec(await readFile(new URL('../migrations/0001.sql',import.meta.url),'utf8'));
- await restored.exec(await readFile(new URL('../migrations/0002.sql',import.meta.url),'utf8'));
+ await restored.exec(await readFile(new URL('../migrations/0002.sql',import.meta.url),'utf8'));await restored.exec(await readFile(new URL('../migrations/0003.sql',import.meta.url),'utf8'));
  await restoreFresh(restored,data);
  for(const table of ['users','records','audit','sources','source_policies'])assert.equal((await restored.prepare('SELECT count(*) n FROM '+table).first()).n,data.tables[table].length);
  assert.equal((await restored.prepare('SELECT count(*) n FROM sessions').first()).n,0);
@@ -98,10 +98,12 @@ test('complete snapshot restores data, accounts and audit into fresh D1 without 
 
 
 test('revoked policy prevents later network calls in an active scan',async()=>{
- const {monitorRoute}=await import('../monitor.mjs');let revoked=false,calls=0;const original=globalThis.fetch;
- const fake={all:async()=>[{id:'one',url:'https://example.org/one'},{id:'two',url:'https://example.org/two'}],one:async()=>({n:2}),q:()=>({run:async()=>({meta:{changes:1}})}),atomic:async(_stmts,options)=>{if(options.condition&&options.args[0]==='two'&&revoked)throw Error('Policy revoked');}};
- globalThis.fetch=async()=>{calls++;revoked=true;throw Error('Simulated network failure after revocation');};
- try{const result=await monitorRoute(fake,{user:{role:'admin'}},'/api/monitor/scan','POST',{maxSources:2},{LIVE_SCAN_ENABLED:'true',REVIEWED_SOURCE_URLS:JSON.stringify(['https://example.org/one','https://example.org/two'])});assert.equal(calls,1);assert.equal(result.data.results[1].error,'Policy revoked');}finally{globalThis.fetch=original;}
+ const {Store}=await import('../store.mjs'),{runScan}=await import('../scheduler.mjs');const catalog=JSON.parse(await readFile(new URL('../../private/catalog.json',import.meta.url),'utf8')),store=new Store(db,catalog),original=globalThis.fetch;let calls=0;
+ await db.prepare('UPDATE sources SET enabled=0').run();const at=new Date().toISOString();
+ for(const n of ['one','two'])await db.prepare('INSERT INTO sources(id,name,url,created_at) VALUES(?,?,?,?)').bind('rev-'+n,n,'https://example.org/'+n,at).run();
+ for(const n of ['one','two'])await db.prepare('INSERT INTO source_policies(source_id,robots_reviewed,terms_reviewed,reviewed_at) VALUES(?,1,1,?)').bind('rev-'+n,at).run();
+ globalThis.fetch=async()=>{calls++;await db.prepare("UPDATE source_policies SET robots_reviewed=0 WHERE source_id='rev-two'").run();return new Response('<html>صفحة رصد قصيرة تكفي لاجتياز حد المحتوى الأدنى للتجربة المحلية</html>',{headers:{'content-type':'text/html'}});};
+ try{const result=await runScan(store,null,{APP_ENV:'development',APP_NAME:'donor-radar-v13-dev',LIVE_SCAN_ENABLED:'true',REVIEWED_SOURCE_URLS:JSON.stringify(['https://example.org/one','https://example.org/two'])},2);assert.equal(calls,1);assert.equal(result.results[0].ok,true);assert.equal(result.results[1].ok,false);}finally{globalThis.fetch=original;await db.prepare("DELETE FROM source_policies WHERE source_id IN ('rev-one','rev-two')").run();await db.prepare("DELETE FROM observations WHERE source_id IN ('rev-one','rev-two')").run();await db.prepare("DELETE FROM evidence WHERE source_id IN ('rev-one','rev-two')").run();await db.prepare("DELETE FROM alerts WHERE reference_id IN ('rev-one','rev-two')").run();await db.prepare("DELETE FROM sources WHERE id IN ('rev-one','rev-two')").run();}
 });
 
 test('new users must change password; old sessions and CSRF tokens cannot continue',async()=>{
@@ -118,7 +120,7 @@ test('approved discoveries are shared; applications are independent and versione
  const source=(await db.prepare('SELECT id FROM sources LIMIT 1').first()).id;
  await db.prepare("INSERT INTO opportunities(id,source_id,title,source_url,review_status,created_at) VALUES('flow-one',?,'منحة اختبار','https://example.org/grants/one','pending',?)").bind(source,new Date().toISOString()).run();
  let state=await (await request('/api/state',{session:admin})).json();assert.ok(Array.isArray(state.discoveries),'shared discoveries missing');assert.ok(!state.discoveries.some(x=>x.id==='flow-one'));
- const review={decision:'approved',expectedVersion:0,donorId:'associations-support-fund',topics:['youth']};
+ const review={decision:'approved',expectedVersion:0,donorId:'associations-support-fund',topics:['youth'],noEvidenceReason:'إعلان مستمر بلا تاريخ إغلاق مذكور'};
  assert.equal((await request('/api/workflow/opportunities/flow-one',{method:'POST',session:editor,body:review})).status,403);
  let r=await request('/api/workflow/opportunities/flow-one',{method:'POST',session:admin,body:review});assert.equal(r.status,200,await r.clone().text());
  state=await (await request('/api/state',{session:admin})).json();assert.ok(state.discoveries.some(x=>x.id==='flow-one'&&x.key==='cw_mon_flow-one'));

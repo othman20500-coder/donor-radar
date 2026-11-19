@@ -26,3 +26,4 @@ cloudflare/ui-check.js
 .playwright-cli/
 .wrangler/
 cloudflare/*snapshot.txt
+cloudflare/acceptance-round2-shots/

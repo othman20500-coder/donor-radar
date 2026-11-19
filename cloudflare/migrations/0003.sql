@@ -1,0 +1,13 @@
+ALTER TABLE scheduled_runs ADD COLUMN status TEXT NOT NULL DEFAULT 'done';
+ALTER TABLE scheduled_runs ADD COLUMN attempts INTEGER NOT NULL DEFAULT 1;
+ALTER TABLE scheduled_runs ADD COLUMN finished_at TEXT;
+ALTER TABLE scheduled_runs ADD COLUMN detail TEXT NOT NULL DEFAULT '';
+ALTER TABLE sources ADD COLUMN kind TEXT NOT NULL DEFAULT 'html' CHECK(kind IN ('html','feed','manual'));
+ALTER TABLE opportunities ADD COLUMN title_key TEXT;
+ALTER TABLE opportunities ADD COLUMN duplicate_of TEXT;
+ALTER TABLE opportunities ADD COLUMN terms_json TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE evidence ADD COLUMN origin TEXT NOT NULL DEFAULT 'automatic';
+CREATE TABLE application_events(id INTEGER PRIMARY KEY AUTOINCREMENT,application_id TEXT NOT NULL REFERENCES applications(id),at TEXT NOT NULL,kind TEXT NOT NULL CHECK(kind IN ('stage','contact','note','result')),actor_id TEXT,actor_name TEXT NOT NULL,text TEXT NOT NULL DEFAULT '',data TEXT NOT NULL DEFAULT '{}');
+CREATE INDEX application_events_app ON application_events(application_id,at);
+CREATE INDEX opportunities_title_key ON opportunities(title_key);
+CREATE INDEX observations_url ON observations(source_id,url,id);

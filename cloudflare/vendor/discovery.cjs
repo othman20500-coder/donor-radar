@@ -24,4 +24,7 @@ function stageCandidates(m,sourceId,html){
  for(const c of candidates){ids.push(m.propose({sourceId,title:c.title,sourceUrl:c.sourceUrl}));}
  return {sourceId,candidates:candidates.length,ids,requiresApproval:true};
 }
-module.exports={discoverLinks,stageCandidates};
+const STOP=new Set(['منحه','منح','برنامج','دعم','تمويل','اعلان','التقديم','في','من','علي','الي','على','الى','the','for','and','of','grant','grants','funding','apply','program','programme','fund']);
+function titleKey(t){const words=String(t).normalize('NFKC').toLowerCase().replace(/[\u064B-\u065F\u0670\u0640]/g,'').replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ة/g,'ه').replace(/[0-9٠-٩]+/g,' ').replace(/[^\p{L}\s]/gu,' ').split(/\s+/).filter(w=>w.length>1&&!STOP.has(w));return (words.length?words:[String(t).trim().toLowerCase()]).sort().join(' ').slice(0,300);}
+function canonicalLink(href,base){const baseUrl=sourceUrl(base);let u=new URL(entities(String(href)),baseUrl);u.hash='';for(const k of [...u.searchParams.keys()])if(/^utm_|^(fbclid|gclid)$/i.test(k))u.searchParams.delete(k);u=sourceUrl(u.toString());if(new URL(u).origin!==new URL(baseUrl).origin)throw Error('رابط من نطاق آخر');return u;}
+module.exports={discoverLinks,stageCandidates,titleKey,canonicalLink,GRANT};
