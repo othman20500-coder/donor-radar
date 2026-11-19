@@ -24,7 +24,7 @@
         "APP_NAME": "donor-radar-v13-dev",
         "PUBLIC_URL": "https://donor-radar-v13-dev.othman20500.workers.dev",
         "LIVE_SCAN_ENABLED": "true",
-        "REVIEWED_SOURCE_URLS": "[\"https://www.gov.uk/guidance/find-government-grants\"]"
+        "REVIEWED_SOURCE_URLS": "[\"https://www.gov.uk/guidance/find-government-grants\",\"https://asf.gov.sa/ar/services/*\"]"
       },
       "d1_databases": [
         {
