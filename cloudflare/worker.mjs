@@ -8,6 +8,7 @@ import {monitorRoute} from './monitor.mjs';
 import {scheduledScan,runScan} from './scheduler.mjs';
 import {workflowRoute} from './workflow.mjs';
 import {snapshot} from './backup.mjs';
+import {newsFeed} from './news.mjs';
 globalThis.Buffer=Buffer;
 const json=(value,status=200,headers={})=>Response.json(value,{status,headers});
 async function body(req,limit=16384){if(!/^application\/json(?:\s*;|$)/i.test(req.headers.get('content-type')||''))fail(415,'أرسل JSON.');if(Number(req.headers.get('content-length')||0)>limit)fail(413,'حجم الطلب كبير.');const reader=req.body?.getReader();let size=0,parts=[];if(reader)try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>limit){await reader.cancel();fail(413,'حجم الطلب كبير.');}parts.push(value);}}finally{reader.releaseLock();}try{const value=JSON.parse(Buffer.concat(parts).toString()||'{}');safeTree(value);return value;}catch(e){if(e instanceof HttpError)throw e;fail(400,'JSON غير صالح.');}}
@@ -30,9 +31,11 @@ async function handle(req,env,nonce){
  if(p==='/api/auth/password'&&req.method==='POST'){const b=await body(req);fields(b,['currentPassword','newPassword']);return json(await store.changePassword(s,b.currentPassword,b.newPassword));}
  if(s.user.mustChangePassword){if(read&&!p.startsWith('/api/'))return new Response(null,{status:303,headers:{Location:'/login'}});fail(403,'غيّر كلمة المرور المؤقتة.','PASSWORD_CHANGE_REQUIRED');}
  if(p==='/workflow'&&read)return page(env,req,'workflow.html',nonce);
+ if(p==='/news'&&read)return page(env,req,'news.html',nonce);
+ if(p==='/api/news'&&req.method==='GET')return json(await newsFeed(store,url.searchParams));
  if(p.startsWith('/api/workflow'))return json(await workflowRoute(store,s,p,req.method,read?{}:await body(req)));
  if(p==='/monitor'&&read){admin(s);return page(env,req,'monitor.html',nonce);}
- if(p==='/api/monitor/scan'&&req.method==='POST'){admin(s);const b=await body(req);fields(b,['maxSources']);const max=b.maxSources??1;if(!Number.isInteger(max)||max<1||max>3)fail(400,'حد الفحص من 1 إلى 3 مصادر.');if(env.LIVE_SCAN_ENABLED!=='true'){const ready=await store.one('SELECT count(*) n FROM sources s JOIN source_policies p ON s.id=p.source_id WHERE s.enabled=1 AND p.robots_reviewed=1 AND p.terms_reviewed=1');if(ready.n)fail(403,'الفحص الحي غير مفعل.');return json({results:[]});}return json(await runScan(store,s,env,max));}
+ if(p==='/api/monitor/scan'&&req.method==='POST'){admin(s);const b=await body(req);fields(b,['maxSources']);const max=b.maxSources??1;if(!Number.isInteger(max)||max<1||max>6)fail(400,'حد الفحص من 1 إلى 6 مصادر.');if(env.LIVE_SCAN_ENABLED!=='true'){const ready=await store.one('SELECT count(*) n FROM sources s JOIN source_policies p ON s.id=p.source_id WHERE s.enabled=1 AND p.robots_reviewed=1 AND p.terms_reviewed=1');if(ready.n)fail(403,'الفحص الحي غير مفعل.');return json({results:[]});}return json(await runScan(store,s,env,max));}
  if(p.startsWith('/api/monitor/')){admin(s);const r=await monitorRoute(store,s,p,req.method,read?{}:await body(req),env);return json(r.data,r.status||200);}
  if(p==='/api/state'&&req.method==='GET'){const since=url.searchParams.get('since');if(since!==null&&!/^\d+$/.test(since))fail(400,'رقم مراجعة غير صالح.');const state=await store.state();return json(since!==null&&Number(since)===state.revision?{unchanged:true,revision:state.revision,serverTime:state.serverTime}:state);}
  if(p.startsWith('/api/records/')&&req.method==='PUT'){const b=await body(req,2*1024*1024);fields(b,['value','expectedVersion']);return json(await store.setRecord(p.slice(13),b.value,b.expectedVersion,s));}

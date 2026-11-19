@@ -16,6 +16,7 @@ fs.writeFileSync(path.join(dir,'dist/assets/index.html'),html);
 fs.copyFileSync(path.join(root,'views/login.html'),path.join(dir,'dist/assets/login.html'));
 fs.copyFileSync(path.join(dir,'workflow-ui.html'),path.join(dir,'dist/assets/workflow.html'));
 fs.copyFileSync(path.join(dir,'monitor-ui.html'),path.join(dir,'dist/assets/monitor.html'));
+fs.copyFileSync(path.join(dir,'news-ui.html'),path.join(dir,'dist/assets/news.html'));
 const catalog=JSON.parse(read('private/catalog.json'));
 for(const asset of catalog.allowedFiles){const p=asset.path;if(p.startsWith('/')||p.split('/').some(x=>x==='..'||x.startsWith('.')))throw Error('Unsafe asset');const src=path.join(root,'private/app',p),dest=path.join(dir,'dist/assets',p);fs.mkdirSync(path.dirname(dest),{recursive:true});fs.copyFileSync(src,dest);}
 await build({entryPoints:[path.join(dir,'worker.mjs')],outfile:path.join(dir,'dist/worker.js'),bundle:true,format:'esm',platform:'browser',target:'es2022',external:['node:*'],define:{'process.env.NODE_ENV':'"development"'}});

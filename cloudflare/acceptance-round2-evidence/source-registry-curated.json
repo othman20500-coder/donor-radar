@@ -1,0 +1,422 @@
+{
+  "picked": [
+    {
+      "donorId": "hrdf-hadaf",
+      "donor": "صندوق تنمية الموارد البشرية (هدف)",
+      "url": "https://www.hrdf.org.sa/",
+      "kind": "html",
+      "why": "الصفحة الرئيسية (لا صفحة إعلانات أوضح في الدليل)",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://www.hrdf.org.sa/*",
+      "note": ""
+    },
+    {
+      "donorId": "hrsd-ministry",
+      "donor": "وزارة الموارد البشرية والتنمية الاجتماعية (وكالة تنمية المجتمع)",
+      "url": "https://www.hrsd.gov.sa/knowledge-centre/initiatives/national-transformation-initiatives-bank/107689",
+      "kind": "html",
+      "why": "صفحة البرامج/المسؤولية الاجتماعية",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://www.hrsd.gov.sa/knowledge-centre/initiatives/national-transformation-initiatives-bank/107689/*",
+      "note": ""
+    },
+    {
+      "donorId": "social-development-bank",
+      "donor": "بنك التنمية الاجتماعية",
+      "url": "https://www.sdb.gov.sa/ar/non-profit-sector",
+      "kind": "html",
+      "why": "صفحة البرامج/المسؤولية الاجتماعية",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://www.sdb.gov.sa/ar/non-profit-sector/*",
+      "note": ""
+    },
+    {
+      "donorId": "awqaf-authority",
+      "donor": "الهيئة العامة للأوقاف",
+      "url": "https://awqaf.gov.sa/ar/products/financing-products-waqf-funding-via-fundraising",
+      "kind": "html",
+      "why": "صفحة البرامج/المسؤولية الاجتماعية",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://awqaf.gov.sa/ar/products/financing-products-waqf-funding-via-fundraising/*",
+      "note": ""
+    },
+    {
+      "donorId": "ehsan-platform",
+      "donor": "المنصة الوطنية للعمل الخيري (إحسان)",
+      "url": "https://ehsan.sa/",
+      "kind": "html",
+      "why": "الصفحة الرئيسية (لا صفحة إعلانات أوضح في الدليل)",
+      "robotsStatus": 404,
+      "robotsAllowsPath": null,
+      "rule": "https://ehsan.sa/*",
+      "note": "لا ملف robots أو غير مقروء؛ يحتاج قرارًا"
+    },
+    {
+      "donorId": "misk-foundation",
+      "donor": "مؤسسة محمد بن سلمان «مسك»",
+      "url": "https://misk.org.sa/feed/",
+      "kind": "feed",
+      "why": "موجز RSS رسمي للموقع",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://misk.org.sa/feed/",
+      "note": ""
+    },
+    {
+      "donorId": "national-volunteer-platform",
+      "donor": "المنصة الوطنية للعمل التطوعي (وزارة الموارد البشرية والتنمية الاجتماعية)",
+      "url": "https://www.hrsd.gov.sa/",
+      "kind": "html",
+      "why": "الصفحة الرئيسية (لا صفحة إعلانات أوضح في الدليل)",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://www.hrsd.gov.sa/*",
+      "note": ""
+    },
+    {
+      "donorId": "abdullah-alrajhi-charitable-foundation",
+      "donor": "مؤسسة عبدالله الراجحي الخيرية",
+      "url": "https://rajhifoundation.org/feed/",
+      "kind": "feed",
+      "why": "موجز RSS رسمي للموقع",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://rajhifoundation.org/feed/",
+      "note": ""
+    },
+    {
+      "donorId": "sulaiman-alrajhi-charitable-foundation",
+      "donor": "مؤسسة سليمان بن عبدالعزيز الراجحي الخيرية",
+      "url": "https://rf.org.sa/feed/",
+      "kind": "feed",
+      "why": "موجز RSS رسمي للموقع",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://rf.org.sa/feed/",
+      "note": ""
+    },
+    {
+      "donorId": "king-khalid-foundation",
+      "donor": "مؤسسة الملك خالد",
+      "url": "https://kkf.org.sa/greengrants",
+      "kind": "html",
+      "why": "صفحة البرامج/المسؤولية الاجتماعية",
+      "robotsStatus": 404,
+      "robotsAllowsPath": null,
+      "rule": "https://kkf.org.sa/greengrants/*",
+      "note": "لا ملف robots أو غير مقروء؛ يحتاج قرارًا"
+    },
+    {
+      "donorId": "abanumay-private-foundation",
+      "donor": "مؤسسة سليمان أبانمي الخاصة (Sulaiman Abanumy Private Foundation)",
+      "url": "https://abanumay.sa/feed/",
+      "kind": "feed",
+      "why": "موجز RSS رسمي للموقع",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://abanumay.sa/feed/",
+      "note": ""
+    },
+    {
+      "donorId": "alwaleed-philanthropies",
+      "donor": "مؤسسة الوليد للإنسانية",
+      "url": "https://www.alwaleedphilanthropies.org/ar",
+      "kind": "html",
+      "why": "الصفحة الرئيسية (لا صفحة إعلانات أوضح في الدليل)",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://www.alwaleedphilanthropies.org/ar/*",
+      "note": ""
+    },
+    {
+      "donorId": "community-jameel-saudi",
+      "donor": "مجتمع جميل السعودية (عبداللطيف جميل)",
+      "url": "https://communityjameelsaudi.org/en",
+      "kind": "html",
+      "why": "صفحة البرامج/المسؤولية الاجتماعية",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://communityjameelsaudi.org/en/*",
+      "note": ""
+    },
+    {
+      "donorId": "talal-charitable-foundation",
+      "donor": "طلال الخيرية",
+      "url": "https://grants.talalfoundation.sa/",
+      "kind": "html",
+      "why": "صفحة البرامج/المسؤولية الاجتماعية",
+      "robotsStatus": 404,
+      "robotsAllowsPath": null,
+      "rule": "https://grants.talalfoundation.sa/*",
+      "note": "لا ملف robots أو غير مقروء؛ يحتاج قرارًا"
+    },
+    {
+      "donorId": "aramco-grants",
+      "donor": "أرامكو السعودية — المنح",
+      "url": "https://www.aramco.com/en/sustainability/society/grants",
+      "kind": "html",
+      "why": "صفحة البرامج/المسؤولية الاجتماعية",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://www.aramco.com/en/sustainability/society/grants/*",
+      "note": ""
+    },
+    {
+      "donorId": "aramco-community-sponsorships",
+      "donor": "أرامكو السعودية — الرعايات المجتمعية",
+      "url": "https://www.aramco.com/en/sustainability/society/sponsorships/community-sponsorship",
+      "kind": "html",
+      "why": "صفحة البرامج/المسؤولية الاجتماعية",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://www.aramco.com/en/sustainability/society/sponsorships/community-sponsorship/*",
+      "note": ""
+    },
+    {
+      "donorId": "stc-sponsorship",
+      "donor": "stc — طلبات الرعاية (الشراكات والتحالفات)",
+      "url": "https://stc.com/content/stcgroupwebsite/sa/en/who-we-are/patnership-and-alliances/sponsorship-form-request.html",
+      "kind": "html",
+      "why": "الصفحة الرئيسية (لا صفحة إعلانات أوضح في الدليل)",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://stc.com/content/stcgroupwebsite/sa/en/who-we-are/patnership-and-alliances/sponsorship-form-request.html/*",
+      "note": ""
+    },
+    {
+      "donorId": "national-csr-platform",
+      "donor": "المنصة الوطنية للمسؤولية الاجتماعية (وزارة الموارد البشرية والتنمية الاجتماعية)",
+      "url": "https://www.hrsd.gov.sa/ministry-services/electronic-portals",
+      "kind": "html",
+      "why": "الصفحة الرئيسية (لا صفحة إعلانات أوضح في الدليل)",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://www.hrsd.gov.sa/ministry-services/electronic-portals/*",
+      "note": ""
+    },
+    {
+      "donorId": "riyad-bank-bukra",
+      "donor": "بنك الرياض — برنامج بكرة للمسؤولية الاجتماعية",
+      "url": "https://www.riyadbank.com/personal-banking/about-us/corporate-social-responsibility/community",
+      "kind": "html",
+      "why": "الصفحة الرئيسية (لا صفحة إعلانات أوضح في الدليل)",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://www.riyadbank.com/personal-banking/about-us/corporate-social-responsibility/community/*",
+      "note": ""
+    },
+    {
+      "donorId": "alinma-amad",
+      "donor": "مصرف الإنماء — برنامج أمد للاستدامة والمسؤولية الاجتماعية",
+      "url": "https://alinma.com/en/About-the-Bank/The-Bank/News/2024/3/Alinma-Bank-Launches-its-Sustainability-Social-Responsibility-Program-AMAD",
+      "kind": "html",
+      "why": "الصفحة الرئيسية (لا صفحة إعلانات أوضح في الدليل)",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://alinma.com/en/About-the-Bank/The-Bank/News/2024/3/Alinma-Bank-Launches-its-Sustainability-Social-Responsibility-Program-AMAD/*",
+      "note": ""
+    },
+    {
+      "donorId": "anb-society",
+      "donor": "البنك العربي الوطني (anb) — برنامج anb Society",
+      "url": "https://anb.com.sa/web/anb/anbsociety",
+      "kind": "html",
+      "why": "الصفحة الرئيسية (لا صفحة إعلانات أوضح في الدليل)",
+      "robotsStatus": 200,
+      "robotsAllowsPath": null,
+      "rule": "https://anb.com.sa/web/anb/anbsociety/*",
+      "note": "لا ملف robots أو غير مقروء؛ يحتاج قرارًا"
+    },
+    {
+      "donorId": "saib",
+      "donor": "البنك السعودي للاستثمار (SAIB)",
+      "url": "https://www.saib.com.sa/",
+      "kind": "html",
+      "why": "الصفحة الرئيسية (لا صفحة إعلانات أوضح في الدليل)",
+      "robotsStatus": 0,
+      "robotsAllowsPath": null,
+      "rule": "https://www.saib.com.sa/*",
+      "note": "لا ملف robots أو غير مقروء؛ يحتاج قرارًا"
+    },
+    {
+      "donorId": "alrajhi-bank",
+      "donor": "مصرف الراجحي",
+      "url": "https://www.alrajhibank.com.sa/ir25/ar/community_development_driving_impact/key_social_responsibility_initiatives.html",
+      "kind": "html",
+      "why": "صفحة البرامج/المسؤولية الاجتماعية",
+      "robotsStatus": 200,
+      "robotsAllowsPath": null,
+      "rule": "https://www.alrajhibank.com.sa/ir25/ar/community_development_driving_impact/key_social_responsibility_initiatives.html/*",
+      "note": "لا ملف robots أو غير مقروء؛ يحتاج قرارًا"
+    },
+    {
+      "donorId": "almarai",
+      "donor": "المراعي",
+      "url": "https://sustainability.almarai.com/en/community-investment.html",
+      "kind": "html",
+      "why": "صفحة البرامج/المسؤولية الاجتماعية",
+      "robotsStatus": 404,
+      "robotsAllowsPath": null,
+      "rule": "https://sustainability.almarai.com/en/community-investment.html/*",
+      "note": "لا ملف robots أو غير مقروء؛ يحتاج قرارًا"
+    },
+    {
+      "donorId": "savola-world-foundation",
+      "donor": "مؤسسة عالم صافولا",
+      "url": "https://www.savola.com/en/csr/savola-world-foundation",
+      "kind": "html",
+      "why": "صفحة البرامج/المسؤولية الاجتماعية",
+      "robotsStatus": 404,
+      "robotsAllowsPath": null,
+      "rule": "https://www.savola.com/en/csr/savola-world-foundation/*",
+      "note": "لا ملف robots أو غير مقروء؛ يحتاج قرارًا"
+    },
+    {
+      "donorId": "maaden",
+      "donor": "معادن",
+      "url": "https://www.maaden.com/sustainability/sustainability-overview",
+      "kind": "html",
+      "why": "صفحة البرامج/المسؤولية الاجتماعية",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://www.maaden.com/sustainability/sustainability-overview/*",
+      "note": ""
+    },
+    {
+      "donorId": "saudi-electricity",
+      "donor": "الشركة السعودية للكهرباء",
+      "url": "https://www.se.com.sa/",
+      "kind": "html",
+      "why": "الصفحة الرئيسية (لا صفحة إعلانات أوضح في الدليل)",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://www.se.com.sa/*",
+      "note": ""
+    },
+    {
+      "donorId": "sab-saudi-awwal",
+      "donor": "البنك السعودي الأول (ساب)",
+      "url": "https://www.sab.com/microsite/annualreport2024/ar/esg.html",
+      "kind": "html",
+      "why": "الصفحة الرئيسية (لا صفحة إعلانات أوضح في الدليل)",
+      "robotsStatus": 200,
+      "robotsAllowsPath": null,
+      "rule": "https://www.sab.com/microsite/annualreport2024/ar/esg.html/*",
+      "note": "لا ملف robots أو غير مقروء؛ يحتاج قرارًا"
+    },
+    {
+      "donorId": "alrajhi-humanitarian",
+      "donor": "الراجحي الإنسانية — دعم الجهات العاملة مع الشباب",
+      "url": "https://namaa.alrajhihum.org.sa/",
+      "kind": "html",
+      "why": "الصفحة الرئيسية (لا صفحة إعلانات أوضح في الدليل)",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://namaa.alrajhihum.org.sa/*",
+      "note": ""
+    },
+    {
+      "donorId": "alhamdan-foundation",
+      "donor": "مؤسسة عبدالعزيز بن عبدالرحمن الحمدان الخيرية",
+      "url": "https://alhamdancharity.grants.mytts.sa/",
+      "kind": "html",
+      "why": "صفحة البرامج/المسؤولية الاجتماعية",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://alhamdancharity.grants.mytts.sa/*",
+      "note": ""
+    },
+    {
+      "donorId": "alrebdi-waqf",
+      "donor": "وقف محمد بن عبدالرحمن الربدي",
+      "url": "https://alrebdi.sa/",
+      "kind": "html",
+      "why": "الصفحة الرئيسية (لا صفحة إعلانات أوضح في الدليل)",
+      "robotsStatus": 200,
+      "robotsAllowsPath": true,
+      "rule": "https://alrebdi.sa/*",
+      "note": ""
+    }
+  ],
+  "skipped": [
+    {
+      "donorId": "associations-support-fund",
+      "donor": "صندوق دعم الجمعيات",
+      "reason": "مصدر قائم ومفعّل"
+    },
+    {
+      "donorId": "ncnp-national-center-nonprofit",
+      "donor": "المركز الوطني لتنمية القطاع غير الربحي",
+      "reason": "مستبعد بقرار المالك"
+    },
+    {
+      "donorId": "ministry-of-sport",
+      "donor": "وزارة الرياضة (برامج الشباب والأندية)",
+      "reason": "الموقع لا يستجيب للأدوات"
+    },
+    {
+      "donorId": "riyadh-region-bodies",
+      "donor": "أمانة منطقة الرياض / إمارة المنطقة / هيئة تطوير منطقة الرياض",
+      "reason": "لا رابط رسمي في الدليل"
+    },
+    {
+      "donorId": "othaim-charitable-foundation",
+      "donor": "مؤسسة عبدالله العثيم وأولاده الخيرية",
+      "reason": "لا رابط رسمي في الدليل"
+    },
+    {
+      "donorId": "alsubaie-charitable-foundation",
+      "donor": "مؤسسة محمد وعبدالله إبراهيم السبيعي الخيرية",
+      "reason": "لا رابط رسمي في الدليل"
+    },
+    {
+      "donorId": "sultan-bin-abdulaziz-foundation",
+      "donor": "مؤسسة سلطان بن عبدالعزيز آل سعود الخيرية",
+      "reason": "لا رابط رسمي في الدليل"
+    },
+    {
+      "donorId": "princess-alanoud-foundation",
+      "donor": "مؤسسة الأميرة العنود بنت عبدالعزيز بن مساعد الخيرية",
+      "reason": "لا رابط رسمي في الدليل"
+    },
+    {
+      "donorId": "waqf-khibrat-alistidama",
+      "donor": "وقف خبرات الاستدامة",
+      "reason": "لا رابط رسمي في الدليل"
+    },
+    {
+      "donorId": "bank-aljazira",
+      "donor": "بنك الجزيرة",
+      "reason": "robots يمنع المسار"
+    },
+    {
+      "donorId": "sabic",
+      "donor": "سابك",
+      "reason": "الموقع لا يستجيب للأدوات"
+    },
+    {
+      "donorId": "jarir",
+      "donor": "مكتبة جرير",
+      "reason": "الصفحة محمية أو معطلة (403)"
+    },
+    {
+      "donorId": "nahdi",
+      "donor": "شركة النهدي الطبية — قوافل الأمل",
+      "reason": "لا رابط رسمي في الدليل"
+    },
+    {
+      "donorId": "roshn",
+      "donor": "روشن — الرعايات",
+      "reason": "الصفحة محمية أو معطلة (500)"
+    },
+    {
+      "donorId": "snb",
+      "donor": "البنك الأهلي السعودي (SNB)",
+      "reason": "الموقع لا يستجيب للأدوات"
+    }
+  ]
+}

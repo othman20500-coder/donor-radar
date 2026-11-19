@@ -1,13 +1,13 @@
 import {now,fail} from './security.mjs';
 import {fetchBounded,recordPage,allowedList,isAllowed} from './monitor.mjs';
-const DAY=86400000,POLICY_MAX_AGE=90*DAY,SLOT_MS=6*3600000,MAX_ATTEMPTS=3,RUNNING_STALE=10*60000;
+const DAY=86400000,POLICY_MAX_AGE=90*DAY,SLOT_MS=3600000,MAX_ATTEMPTS=3,RUNNING_STALE=10*60000,SCHEDULED_MAX=6;
 /** A source that keeps failing is retried with exponential backoff (2h, 4h, ... capped at 48h) instead of every cycle. */
 export function backoffDue(source,at=Date.now()){
  const failures=Number(source.failures||0);if(failures<3||!source.last_checked)return true;
  const wait=Math.min(48,2**(failures-2))*3600000;return Date.parse(source.last_checked)+wait<=at;
 }
 function gate(env){if(env.APP_ENV!=='development'||env.APP_NAME!=='donor-radar-v13-dev')fail(503,'بيئة رصد غير معتمدة.');}
-export async function runScan(store,session,env,max=3){
+export async function runScan(store,session,env,max=SCHEDULED_MAX){
  gate(env);
  if(env.LIVE_SCAN_ENABLED!=='true')return {disabled:true,results:[]};
  const id=crypto.randomUUID(),lock=await store.q('UPDATE scan_lock SET owner=?,expires_at=? WHERE id=1 AND expires_at<?',id,Date.now()+240000,Date.now()).run();if(!lock.meta.changes)return {busy:true,results:[]};
@@ -58,7 +58,7 @@ export async function scheduledScan(store,env,time){
  }
  let status='done',detail='',result;
  try{
-  result=await runScan(store,null,env,3);
+  result=await runScan(store,null,env,SCHEDULED_MAX);
   if(result.busy){status='busy';detail='فحص آخر قيد التنفيذ';}
   else if(result.results.length&&result.results.every(r=>!r.ok)){status='failed';detail=result.results.map(r=>r.error).filter(Boolean).join('؛ ').slice(0,300);}
   else if(!result.results.length){detail='لا مصادر مؤهلة للفحص في هذه النافذة';}

@@ -45,15 +45,15 @@ test('allow list accepts exact urls and explicit path prefixes only',async()=>{
 });
 
 test('scheduler: a failed or busy window is retried in the same slot and finally completes once',async()=>{
- const {scheduledScan}=await import('../scheduler.mjs');await addSource('sched','https://feed.example.org/rss.xml','feed');const t=Math.floor(1900000000000/21600000)*21600000+1000;let ok=false,calls=0;
+ const {scheduledScan}=await import('../scheduler.mjs');await addSource('sched','https://feed.example.org/rss.xml','feed');const t=Math.floor(1900000000000/3600000)*3600000+1000;let ok=false,calls=0;
  const f=async()=>{calls++;if(!ok)throw Error('network down');return xml(rss([{title:'منحة تجريبية للشباب',link:'https://feed.example.org/news/youth-1',desc:'آخر موعد للتقديم: 2027-04-01'}]));};
  await withFetch(f,async()=>{
-  const first=await scheduledScan(store,ENV(),t);assert.equal(first.results[0].ok,false);assert.equal((await store.one('SELECT status,attempts FROM scheduled_runs WHERE slot=?',String(Math.floor(t/21600000)))).status,'failed');
+  const first=await scheduledScan(store,ENV(),t);assert.equal(first.results[0].ok,false);assert.equal((await store.one('SELECT status,attempts FROM scheduled_runs WHERE slot=?',String(Math.floor(t/3600000)))).status,'failed');
   await store.q("UPDATE scan_lock SET owner='x',expires_at=?",Date.now()+60000).run();await db.prepare('UPDATE sources SET last_checked=NULL,failures=0').run();
   const busy=await scheduledScan(store,ENV(),t+1800000);assert.equal(busy.busy,true);assert.equal((await store.one('SELECT status FROM scheduled_runs')).status,'busy');
   await store.q('UPDATE scan_lock SET owner=NULL,expires_at=0').run();ok=true;
   const done=await scheduledScan(store,ENV(),t+1800000);assert.equal(done.results[0].ok,true);const row=await store.one('SELECT status,attempts,finished_at FROM scheduled_runs');assert.equal(row.status,'done');assert.equal(row.attempts,3);assert.ok(row.finished_at);
-  const before=calls;assert.equal((await scheduledScan(store,ENV(),t+3600000)).duplicate,true);assert.equal(calls,before);
+  const before=calls;assert.equal((await scheduledScan(store,ENV(),t+3500000)).duplicate,true);assert.equal(calls,before);
  });
  await db.prepare("UPDATE sources SET enabled=0 WHERE id='sched'").run();
 });
@@ -166,4 +166,11 @@ test('discovery: index-like pages are labelled, and the same URL seen from a sec
  const idx=await store.one("SELECT * FROM opportunities WHERE source_id='idx-src' AND source_url='https://feed.example.org/news/products'");assert.equal(JSON.parse(idx.fields_json).hint,'index');assert.match((await store.one('SELECT message FROM alerts WHERE reference_id=?',idx.id)).message,/فهرس/);
  const dup=await store.one("SELECT * FROM opportunities WHERE source_id='idx-src' AND source_url='https://feed.example.org/news/1'");assert.equal(dup.duplicate_of,o.id,'same URL from another source links to the original even when the title differs');
  await db.prepare('UPDATE sources SET enabled=0').run();
+});
+
+test('news: every role reads the time-ordered feed with labels; rejected items are hidden',async()=>{
+ const viewer=await login('viewer');const r=await request('/api/news',{session:viewer});assert.equal(r.status,200,await r.clone().text());const d=await r.json();
+ assert.ok(Array.isArray(d.items)&&d.items.length>0);assert.ok(d.items.every(i=>i.status!=='rejected'));assert.ok(d.items.some(i=>i.hint==='index'));assert.ok(d.items.some(i=>i.status==='pending'));
+ assert.ok(d.items.every((i,k,a)=>k===0||a[k-1].createdAt>=i.createdAt),'newest first');assert.ok(Array.isArray(d.sources)&&Array.isArray(d.alerts)&&Array.isArray(d.donors));
+ assert.equal((await request('/api/news')).status,401);assert.equal((await request('/news',{session:viewer})).status,200);
 });
