@@ -1,0 +1,12 @@
+ALTER TABLE sources ADD COLUMN donor_id TEXT;
+ALTER TABLE sources ADD COLUMN last_checked TEXT;
+ALTER TABLE sources ADD COLUMN failures INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE opportunities ADD COLUMN donor_id TEXT;
+ALTER TABLE opportunities ADD COLUMN fields_json TEXT NOT NULL DEFAULT '{}';
+ALTER TABLE opportunities ADD COLUMN evidence_id TEXT;
+ALTER TABLE opportunities ADD COLUMN version INTEGER NOT NULL DEFAULT 0;
+ALTER TABLE evidence ADD COLUMN opportunity_id TEXT;
+CREATE TABLE applications(id TEXT PRIMARY KEY,opportunity_id TEXT NOT NULL REFERENCES opportunities(id),project_id TEXT NOT NULL,owner_id TEXT REFERENCES users(id),stage TEXT NOT NULL CHECK(stage IN ('eval','prep','sent','accepted','rejected','closed')),next_action TEXT NOT NULL DEFAULT '',due_date TEXT NOT NULL DEFAULT '',notes TEXT NOT NULL DEFAULT '',version INTEGER NOT NULL,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,UNIQUE(opportunity_id,project_id));
+CREATE TABLE scheduled_runs(slot TEXT PRIMARY KEY,created_at TEXT NOT NULL);
+CREATE INDEX applications_owner ON applications(owner_id,stage);
+ALTER TABLE observations ADD COLUMN url TEXT;

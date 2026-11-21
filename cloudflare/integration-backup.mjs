@@ -1,0 +1,4 @@
+import fs from 'node:fs';import assert from 'node:assert/strict';
+const origin='https://donor-radar-v13-dev.othman20500.workers.dev',u=JSON.parse(fs.readFileSync('dev-credentials.json')).users[0];
+const r=await fetch(origin+'/api/auth/login',{method:'POST',headers:{Origin:origin,'Content-Type':'application/json'},body:JSON.stringify({username:u.username,password:u.password})});assert.equal(r.status,200);const s=await r.json(),headers={Origin:origin,'Content-Type':'application/json',Cookie:r.headers.get('set-cookie').split(';')[0],'X-CSRF-Token':s.csrfToken};
+const b=await fetch(origin+'/api/backups',{method:'POST',headers,body:'{}'});assert.equal(b.status,201);const data=await b.json();fs.writeFileSync('integration-backup-results.json',JSON.stringify(data,null,2));console.log(JSON.stringify(data));

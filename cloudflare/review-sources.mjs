@@ -1,0 +1,1 @@
+const urls=['https://asf.gov.sa/robots.txt','https://ncnp.gov.sa/robots.txt'];for(const u of urls){try{const r=await fetch(u,{signal:AbortSignal.timeout(15000)});console.log(JSON.stringify({url:u,status:r.status,body:(await r.text()).slice(0,9000)}));}catch(e){console.log(u,e.message)}}

@@ -1,0 +1,30 @@
+<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>آخر الإعلانات — رادار المانحين (تجريبي)</title><style>body{font:16px system-ui,sans-serif;background:#f6f8f8;color:#183039;margin:0}main{max-width:1100px;margin:auto;padding:24px 16px}h1{margin:6px 0 2px}.muted{color:#64767d}nav a{color:#116d63}section{background:white;border:1px solid #dce5e4;border-radius:12px;padding:16px;margin:14px 0}.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center}.bar select,.bar input{font:inherit;padding:8px;border:1px solid #ccd6d5;border-radius:8px;max-width:100%}.item{display:grid;grid-template-columns:1fr auto;gap:6px 14px;padding:12px 0;border-bottom:1px solid #e7eded}.item:last-child{border-bottom:0}.item h3{margin:0;font-size:17px}.item a{color:#116d63;text-decoration:none}.item a:hover{text-decoration:underline}.meta{color:#64767d;font-size:14px}.badge{display:inline-block;border-radius:999px;padding:2px 10px;background:#eef3f2;margin-inline-end:6px;font-size:13px}.b-pending{background:#fff3d6}.b-approved{background:#dff3ec}.b-index{background:#eceff1;color:#4b5b63}.b-dup{background:#f3e7e7}.time{color:#64767d;font-size:13px;white-space:nowrap}.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.kpi{background:#f6f8f8;border-radius:10px;padding:12px}.kpi b{display:block;font-size:24px}#alerts p{margin:6px 0}@media (max-width:600px){.item{grid-template-columns:1fr}main{padding:16px 10px}}</style></head><body><main>
+<nav><a href="/">لوحة القرار</a> · <a href="/workflow">الفرص والمتابعة</a> · <a href="/monitor" id="monitor-link" hidden>مصادر الرصد</a></nav>
+<h1>آخر الإعلانات</h1><p class="muted">كل ما رصده النظام من المصادر الرسمية مرتبًا بالأحدث. المرشحات «بانتظار المراجعة» لم يعتمدها أحد بعد؛ «فهرس محتمل» صفحة قوائم لا إعلان.</p>
+<section><div class="kpis" id="kpis"></div><p class="muted" id="runs"></p></section>
+<section><div class="bar"><select id="donor"><option value="">كل الجهات</option></select><select id="status"><option value="">كل الحالات</option><option value="pending">بانتظار المراجعة</option><option value="approved">معتمدة</option></select><label><input type="checkbox" id="hideIndex" checked> إخفاء صفحات الفهرس</label><input id="q" placeholder="بحث في العناوين" size="24"></div><div id="list"></div></section>
+<section><h2>تنبيهات مفتوحة</h2><div id="alerts"></div></section>
+<section><h2>المصادر النشطة</h2><div id="sources" class="muted"></div></section>
+<script>
+'use strict';
+let data,session;const $=id=>document.getElementById(id),el=(t,text,cls)=>{const n=document.createElement(t);if(text!==undefined)n.textContent=text;if(cls)n.className=cls;return n;};
+const fmt=iso=>iso?new Date(iso).toLocaleString('ar-SA',{dateStyle:'medium',timeStyle:'short',timeZone:'Asia/Riyadh'}):'—';
+const statusName={pending:'بانتظار المراجعة',approved:'معتمدة'};
+function render(){const d=$('donor').value,s=$('status').value,hide=$('hideIndex').checked,q=$('q').value.trim();const list=$('list');list.replaceChildren();
+ const items=data.items.filter(i=>(!d||i.donorId===d)&&(!s||i.status===s)&&(!hide||i.hint!=='index')&&(!q||i.title.includes(q)));
+ for(const i of items){const row=el('div',undefined,'item');const left=el('div');const h=el('h3');const a=el('a',i.title);a.href=i.url;a.rel='noopener noreferrer';a.target='_blank';h.append(a);left.append(h);
+  const b=el('div');b.append(el('span',statusName[i.status]||i.status,'badge b-'+i.status));if(i.hint==='index')b.append(el('span','فهرس محتمل','badge b-index'));if(i.duplicateOf)b.append(el('span','مكررة','badge b-dup'));if(i.closesAt)b.append(el('span','الإغلاق '+i.closesAt,'badge'));left.append(b);
+  left.append(el('div',(i.donor||'جهة غير محددة')+' · المصدر: '+i.source+(i.sourceKind==='manual'?' (إدخال يدوي)':i.sourceKind==='feed'?' (RSS)':''),'meta'));
+  const t=el('div');t.append(el('div','رُصد '+fmt(i.createdAt),'time'));if(i.lastSeenAt)t.append(el('div','آخر فحص '+fmt(i.lastSeenAt),'time'));row.append(left,t);list.append(row);}
+ if(!items.length)list.append(el('p','لا إعلانات مطابقة للمرشحات الحالية.','muted'));}
+async function load(){const r=await fetch('/api/news');if(!r.ok)throw Error('تعذر تحميل الإعلانات أو انتهت الجلسة');data=await r.json();
+ const active=data.sources.filter(s=>s.active),last=data.runs[0];
+ $('kpis').replaceChildren(...[[data.items.filter(i=>i.hint!=='index').length,'إعلانات مرصودة'],[data.items.filter(i=>i.status==='pending'&&i.hint!=='index').length,'بانتظار المراجعة'],[active.length,'مصادر نشطة'],[data.alerts.length,'تنبيهات مفتوحة']].map(([v,n])=>{const k=el('div',undefined,'kpi');k.append(el('b',String(v)),el('span',n));return k;}));
+ $('runs').textContent=last?('آخر جولة فحص: '+fmt(last.started_at)+' — فُحص '+last.checked+'، نجح '+last.succeeded+'، فشل '+last.failed+(data.scheduled[0]?' · آخر نافذة مجدولة: '+fmt(data.scheduled[0].created_at)+' ('+({done:'اكتملت',failed:'فشلت',busy:'مشغول',running:'قيد التنفيذ'})[data.scheduled[0].status]+')':'')):'لم تجرِ أي جولة فحص بعد.';
+ const sel=$('donor'),cur=sel.value;sel.replaceChildren(el('option','كل الجهات'));sel.firstChild.value='';const used=new Set(data.items.map(i=>i.donorId).filter(Boolean));for(const d of data.donors.filter(d=>used.has(d.id))){const o=el('option',d.name);o.value=d.id;sel.append(o);}sel.value=cur;
+ $('alerts').replaceChildren(...(data.alerts.length?data.alerts.slice(0,30).map(a=>el('p',fmt(a.created_at)+' — '+a.message)):[el('p','لا تنبيهات مفتوحة.','muted')]));
+ $('sources').textContent=active.length?active.map(s=>(s.donor||s.name)+(s.last_checked?' (آخر فحص '+fmt(s.last_checked)+')':' (لم يُفحص بعد)')).join(' · '):'لا مصادر نشطة؛ تحتاج المصادر إلى مراجعة السياسات في مركز الرصد.';
+ render();}
+for(const id of ['donor','status','hideIndex','q'])$(id).addEventListener('input',render);
+(async()=>{session=await (await fetch('/api/session')).json();$('monitor-link').hidden=session.user?.role!=='admin';await load();})().catch(e=>{$('list').replaceChildren(el('p',e.message,'muted'));});
+</script></main></body></html>

@@ -1,0 +1,3 @@
+import fs from 'node:fs';
+const u=JSON.parse(fs.readFileSync('cloudflare/dev-credentials.json','utf8')).users[0];
+fs.writeFileSync('cloudflare/browser-credentials.js',`async page => { await page.getByRole('textbox',{name:'اسم المستخدم استخدم اسم المستخدم المخصص لك.'}).fill(${JSON.stringify(u.username)}); await page.getByRole('textbox',{name:'كلمة المرور إظهار كلمة المرور',exact:true}).fill(${JSON.stringify(u.password)}); await page.getByRole('button',{name:'الدخول إلى الرادار'}).click(); await page.waitForURL('https://donor-radar-v13-dev.othman20500.workers.dev/'); await page.screenshot({path:'cloudflare/acceptance-home.png'}); return {title:await page.title(),url:page.url()}; }`);

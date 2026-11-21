@@ -1,0 +1,3 @@
+import fs from 'node:fs';import {randomBytes} from 'node:crypto';import {hashPassword} from './security.mjs';
+const file=new URL('./dev-credentials.json',import.meta.url),data=JSON.parse(fs.readFileSync(file));let sql='';const quote=v=>"'"+v.replaceAll("'","''")+"'";
+for(const u of data.users){u.password=randomBytes(24).toString('base64url');sql+='UPDATE users SET password_hash='+quote(await hashPassword(u.password))+' WHERE username='+quote(u.username)+';\n';}sql+='DELETE FROM sessions;\nDELETE FROM login_attempts;\n';fs.writeFileSync(new URL('./dev-seed.sql',import.meta.url),sql,{mode:0o600});fs.writeFileSync(file,JSON.stringify(data,null,2),{mode:0o600});console.log('Development credentials rotated locally.');
