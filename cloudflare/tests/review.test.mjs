@@ -200,3 +200,15 @@ test('discovery: listing status words and truncated teasers are stripped from ca
  const html='<a href="/x/159">مفتوح أبناء علي الماجد الخيرية تعلن فتح باب التسجيل على بوابتها &amp;nbsp;تدعو &amp;nbs...</a><a href="/x/158">منتهٍ سليمان الراجحي الخيرية تعلن عن فترة المنح الأولى</a>';
  const l=discoverLinks(html,'https://a.example/x');assert.equal(l.length,2);assert.ok(l[0].title.startsWith('أبناء علي الماجد'),l[0].title);assert.ok(!/&nbs/.test(l[0].title)&&!/\.{3}$/.test(l[0].title),l[0].title);assert.ok(l[1].title.startsWith('سليمان الراجحي'),l[1].title);
 });
+
+test('alerts: bulk acknowledgement for editors; feed titles decode numeric and double-encoded entities',async()=>{
+ const {parseFeed}=await import('../feed.mjs');
+ const items=parseFeed('<rss version="2.0"><channel><item><title>مؤسسة &amp;#8220;مسك&amp;#8221; تعلن منحة &#8211; 2027</title><link>https://feed.example.org/news/ent</link><description>آخر موعد للتقديم: 2027-01-05</description></item></channel></rss>','https://feed.example.org/rss.xml');
+ assert.equal(items.length,1);assert.equal(items[0].title,'مؤسسة “مسك” تعلن منحة – 2027');
+ const editor=await login('editor'),viewer=await login('viewer');
+ assert.ok((await store.one('SELECT count(*) n FROM alerts WHERE acknowledged_at IS NULL')).n>0);
+ assert.equal((await request('/api/workflow/alerts/ack-all',{method:'POST',session:viewer,body:{}})).status,403);
+ assert.equal((await request('/api/workflow/alerts/ack-all',{method:'POST',session:editor,body:{}})).status,200);
+ assert.equal((await store.one('SELECT count(*) n FROM alerts WHERE acknowledged_at IS NULL')).n,0);
+ const w=await (await request('/api/workflow',{session:editor})).json();assert.deepEqual(w.alerts,[]);
+});

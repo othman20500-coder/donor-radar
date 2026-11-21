@@ -21,6 +21,7 @@ export async function workflowRoute(store,s,path,method,b){
   return {tags:store.catalog.tags,enums:{entityTypes:ENTITY_TYPES,audiences:AUDIENCES,appStatus:APP_STATUS,readiness:READINESS},org,opportunities,applications:state.applications,events:byApp,evidence,relations,alerts:state.monitorAlerts,members:state.members,donors:store.catalog.donors.map(d=>({id:d.id,name:d.name})),projects:projects.map(p=>({id:p.id,name:p.name})),matches:Object.fromEntries(approved.map(o=>[o.id,projects.map(p=>matchProject(o,p,{terms:o.terms,topics:o.topics,org,docs,today,labels})).sort(byFit)]))};
  }
  if(method!=='POST')fail(404,'مسار غير موجود.');if(s.user.role==='viewer')fail(403,'صلاحيتك للاطلاع فقط.');
+ if(path==='/api/workflow/alerts/ack-all'){fields(b,[]);await store.atomic([store.q('UPDATE alerts SET acknowledged_at=? WHERE acknowledged_at IS NULL',now()),store.audit(s.user,'alert.ack_all'),store.bump()],{session:s});return {ok:true};}
  if(path.startsWith('/api/workflow/alerts/')&&path.endsWith('/ack')){
   fields(b,[]);const id=Number(path.slice('/api/workflow/alerts/'.length,-4));if(!Number.isSafeInteger(id)||id<1)fail(400,'تنبيه غير صالح.');
   await store.atomic([store.q('UPDATE alerts SET acknowledged_at=? WHERE id=? AND acknowledged_at IS NULL',now(),id),store.audit(s.user,'alert.ack',String(id)),store.bump()],{session:s,condition:'EXISTS(SELECT 1 FROM alerts WHERE id=?)',args:[id]});return {ok:true};

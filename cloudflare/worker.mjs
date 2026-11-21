@@ -10,6 +10,7 @@ import {workflowRoute} from './workflow.mjs';
 import {snapshot} from './backup.mjs';
 import {newsFeed} from './news.mjs';
 globalThis.Buffer=Buffer;
+const SHELL_ASSETS={'/radar-shell.css':'text/css; charset=utf-8','/radar-monitor.css':'text/css; charset=utf-8','/radar-shell.js':'text/javascript; charset=utf-8','/radar-shell-data.js':'text/javascript; charset=utf-8'};
 const json=(value,status=200,headers={})=>Response.json(value,{status,headers});
 async function body(req,limit=16384){if(!/^application\/json(?:\s*;|$)/i.test(req.headers.get('content-type')||''))fail(415,'أرسل JSON.');if(Number(req.headers.get('content-length')||0)>limit)fail(413,'حجم الطلب كبير.');const reader=req.body?.getReader();let size=0,parts=[];if(reader)try{for(;;){const {done,value}=await reader.read();if(done)break;size+=value.length;if(size>limit){await reader.cancel();fail(413,'حجم الطلب كبير.');}parts.push(value);}}finally{reader.releaseLock();}try{const value=JSON.parse(Buffer.concat(parts).toString()||'{}');safeTree(value);return value;}catch(e){if(e instanceof HttpError)throw e;fail(400,'JSON غير صالح.');}}
 function admin(s){if(s.user.role!=='admin')fail(403,'هذه العملية تحتاج صلاحية مدير.','FORBIDDEN');}
@@ -47,6 +48,7 @@ async function handle(req,env,nonce){
  if(p==='/api/import'&&req.method==='POST'){admin(s);const b=await body(req,4*1024*1024);fields(b,['backup','mode','expectedRevision']);await saveBackup(store,s,env);return json(await store.importBackup(b.backup,b.mode||'add-only',b.expectedRevision,s));}
  if(p==='/api/backups'){admin(s);if(!env.BACKUPS)fail(503,'تخزين النسخ الاحتياطية غير مهيأ.');if(req.method==='POST')return json({backup:await saveBackup(store,s,env)},201);if(req.method==='GET'){const list=await env.BACKUPS.list({prefix:'dev-backup-',limit:100});return json({backups:list.objects.map(o=>({name:o.key,bytes:o.size,createdAt:o.uploaded.toISOString()})).reverse()});}}
  if(p.startsWith('/api/backups/')&&read){admin(s);const name=p.slice(13);if(!/^dev-backup-[a-zA-Z0-9-]+\.json$/.test(name)||!env.BACKUPS)fail(404,'نسخة غير موجودة.');const obj=await env.BACKUPS.get(name);if(!obj)fail(404,'نسخة غير موجودة.');return new Response(req.method==='HEAD'?null:obj.body,{headers:{'Content-Type':'application/json','Content-Disposition':`attachment; filename="${name}"`}});}
+ if(read&&SHELL_ASSETS[p]){const r=await env.ASSETS.fetch(new Request(new URL(p,req.url),{method:'GET'}));if(!r.ok)fail(404,'الملف غير موجود.');const out=new Response(req.method==='HEAD'?null:r.body,r);out.headers.set('Content-Type',SHELL_ASSETS[p]);return out;}
  if((p==='/'||p==='/index.html')&&read)return page(env,req,'index.html',nonce);
  if(read){const entry=catalog.allowedFiles.find(a=>'/'+a.path===p);if(entry){const r=await env.ASSETS.fetch(req);if(!r.ok)fail(404,'الملف غير موجود.');const out=new Response(r.body,r);out.headers.set('Content-Type',entry.mime||'application/octet-stream');return out;}}
  fail(404,'المسار غير موجود.','NOT_FOUND');
