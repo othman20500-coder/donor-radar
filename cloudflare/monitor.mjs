@@ -9,7 +9,7 @@ function url(value){try{return sourceUrl(value);}catch{fail(400,'رابط مصد
 function day(v,label){if(v===undefined||v===null||v==='')return null;if(typeof v!=='string'||!/^\d{4}-\d{2}-\d{2}$/.test(v)||new Date(v+'T12:00:00Z').toISOString().slice(0,10)!==v)fail(400,label+' غير صالح.');return v;}
 /** Operator-controlled allow list (REVIEWED_SOURCE_URLS). An entry ending in "/*" allows that path prefix only. */
 export function allowedList(env){let list;try{list=JSON.parse(env.REVIEWED_SOURCE_URLS||'[]');}catch{fail(503,'قائمة المصادر غير صالحة.');}if(!Array.isArray(list)||list.some(x=>typeof x!=='string'))fail(503,'قائمة المصادر غير صالحة.');return list;}
-export function isAllowed(list,target){return list.some(a=>a===target||(a.endsWith('/*')&&target.startsWith(a.slice(0,-1))&&!target.slice(a.length-1).includes('..')));}
+export function isAllowed(list,target){return list.some(a=>a===target||(a.endsWith('/*')&&(target===a.slice(0,-2)||(target.startsWith(a.slice(0,-1))&&!target.slice(a.length-1).includes('..')))));}
 const TYPES={html:/^text\/(html|plain)(?:\s*;|$)/i,feed:/^(?:application|text)\/(?:rss\+xml|atom\+xml|xml)(?:\s*;|$)/i};
 export async function fetchBounded(target,env,kind='html'){
  if(!isAllowed(allowedList(env),target))fail(403,'المصدر غير مدرج ضمن قائمة التشغيل المعتمدة.');

@@ -5,10 +5,10 @@ const stages=['eval','prep','sent','accepted','rejected','closed'];
 const stageNames={eval:'تقييم',prep:'تجهيز',sent:'قُدم',accepted:'مقبول',rejected:'مرفوض',closed:'مغلق'};
 function text(v,max=1000){if(typeof v!=='string'||v.length>max)fail(400,'نص غير صالح.');return v.trim();}
 function date(v){if(v!==''&&(!/^\d{4}-\d{2}-\d{2}$/.test(v)||!Number.isFinite(Date.parse(v))||new Date(v).toISOString().slice(0,10)!==v))fail(400,'تاريخ غير صالح.');return v;}
-export function asCall(o,catalog){const d=catalog.donors.find(d=>d.id===o.donor_id);const f=JSON.parse(o.fields_json||'{}');return {id:o.id,key:'cw_mon_'+o.id,donorId:o.donor_id,funder:d?.name||'جهة تحتاج مراجعة',title:o.title,url:o.source_url,deadline:o.closes_at||'',field:(f.topics||[]).join('، '),src:'مركز الرصد — مراجعة بشرية',notes:(o.opens_at?'الفتح '+o.opens_at+'؛ ':'')+(f.notes||'')+'؛ تحقق من الشروط في المصدر',monitor:true};}
+export function asCall(o,catalog){const d=catalog.donors.find(d=>d.id===o.donor_id);const f=JSON.parse(o.fields_json||'{}');return {id:o.id,key:'cw_mon_'+o.id,donorId:o.donor_id,funder:d?.name||f.donorName||'جهة تحتاج مراجعة',title:o.title,url:o.source_url,deadline:o.closes_at||'',field:(f.topics||[]).join('، '),src:'مركز الرصد — مراجعة بشرية',notes:(o.opens_at?'الفتح '+o.opens_at+'؛ ':'')+(f.notes||'')+'؛ تحقق من الشروط في المصدر',monitor:true};}
 export function effectiveProjects(catalog,state){return catalog.projects.map(p=>({...p,...(state['pm_'+p.id]?.fields||{}),visibility:state['pm_'+p.id]?.visibility,lifecycle:state['pm_'+p.id]?.lifecycle})).filter(p=>p.visibility!=='hidden'&&!['trashed','archived'].includes(p.lifecycle));}
 const docStates=state=>Object.fromEntries(Object.keys(READINESS).map(k=>[k,state['doc_'+k]?.st||'']));
-function view(o,catalog,state){const f=JSON.parse(o.fields_json||'{}'),terms=parseTerms(o.terms_json);return {...o,terms,status:statusFor(terms,o,now().slice(0,10)),topics:f.topics||[]};}
+function view(o,catalog,state){const f=JSON.parse(o.fields_json||'{}'),terms=parseTerms(o.terms_json);return {...o,terms,status:statusFor(terms,o,now().slice(0,10)),topics:f.topics||[],donorName:f.donorName||null};}
 export {matchProject};
 export async function workflowRoute(store,s,path,method,b){
  const state=await store.state();
@@ -26,7 +26,7 @@ export async function workflowRoute(store,s,path,method,b){
   await store.atomic([store.q('UPDATE alerts SET acknowledged_at=? WHERE id=? AND acknowledged_at IS NULL',now(),id),store.audit(s.user,'alert.ack',String(id)),store.bump()],{session:s,condition:'EXISTS(SELECT 1 FROM alerts WHERE id=?)',args:[id]});return {ok:true};
  }
  if(path.startsWith('/api/workflow/opportunities/')){
-  if(s.user.role!=='admin')fail(403,'اعتماد الفرص للمدير.');fields(b,['decision','expectedVersion','donorId','topics','eligibility','region','audience','notes','evidenceId','terms','duplicateOf','noEvidenceReason']);const id=path.split('/').pop(),o=await store.one('SELECT * FROM opportunities WHERE id=?',id);if(!o)fail(404,'الفرصة غير موجودة.');
+  if(s.user.role!=='admin')fail(403,'اعتماد الفرص للمدير.');fields(b,['decision','expectedVersion','donorId','topics','eligibility','region','audience','notes','evidenceId','terms','duplicateOf','noEvidenceReason','donorName']);const id=path.split('/').pop(),o=await store.one('SELECT * FROM opportunities WHERE id=?',id);if(!o)fail(404,'الفرصة غير موجودة.');
   if(!['approved','rejected','duplicate'].includes(b.decision)||!Number.isInteger(b.expectedVersion))fail(400,'قرار غير صالح.');
   const guard={session:s,admin:true,condition:'EXISTS(SELECT 1 FROM opportunities WHERE id=? AND version=?)',args:[id,b.expectedVersion]};
   // Rejecting or withdrawing needs no classification; history, evidence and applications stay.
@@ -36,13 +36,14 @@ export async function workflowRoute(store,s,path,method,b){
    if(await store.one('SELECT id FROM applications WHERE opportunity_id=? LIMIT 1',id))fail(409,'لا يمكن دمج فرصة لها طلبات تقديم؛ انقل المتابعة أولًا.','HAS_APPLICATIONS');
    await store.atomic([store.q("UPDATE opportunities SET review_status='rejected',duplicate_of=?,version=version+1 WHERE id=?",canon.id,id),store.audit(s.user,'workflow.duplicate',id,[canon.id],b.expectedVersion+1),store.bump()],{...guard,condition:guard.condition+' AND NOT EXISTS(SELECT 1 FROM applications WHERE opportunity_id=?)',args:[id,b.expectedVersion,id]});return {ok:true,version:b.expectedVersion+1};
   }
-  if(!store.catalog.donors.some(d=>d.id===b.donorId))fail(400,'اختر جهة من الدليل.');
+  // A funder missing from the directory may be named in free text; the catalog id stays null until the directory is updated.
+  const donorName=text(b.donorName||'',160);if(b.donorId){if(!store.catalog.donors.some(d=>d.id===b.donorId))fail(400,'اختر جهة من الدليل.');}else if(donorName.length<3)fail(400,'اختر جهة من الدليل أو اكتب اسم الجهة المانحة (3 أحرف فأكثر).','DONOR_REQUIRED');
   if(!Array.isArray(b.topics)||b.topics.length>30||b.topics.some(t=>typeof t!=='string'||!Object.hasOwn(store.catalog.tags,t)))fail(400,'مجالات غير صالحة.');
   let terms;try{terms=validateTerms(b.terms);}catch(e){if(e instanceof RangeError)fail(400,e.message);throw e;}
-  const meta={topics:b.topics,eligibility:text(b.eligibility||''),region:text(b.region||''),audience:text(b.audience||''),notes:text(b.notes||'')};
+  const meta={topics:b.topics,eligibility:text(b.eligibility||''),region:text(b.region||''),audience:text(b.audience||''),notes:text(b.notes||'')};if(!b.donorId)meta.donorName=donorName;
   let evidence=null;if(b.evidenceId){evidence=await store.one("SELECT * FROM evidence WHERE id=? AND opportunity_id=? AND url=? AND review_status='accepted' AND conflicts=0",b.evidenceId,id,o.source_url);if(!evidence)fail(400,'اربط دليلًا معتمدًا يخص إعلان الفرصة نفسه.');}
   else if(!o.evidence_id){const why=text(b.noEvidenceReason||'',300);if(why.length<10)fail(400,'اربط دليلًا معتمدًا، أو وثّق سبب نشر الفرصة بلا دليل تاريخ (10 أحرف على الأقل).','EVIDENCE_REQUIRED');meta.noEvidenceReason=why;}
-  const statements=[store.q("UPDATE opportunities SET review_status='approved',donor_id=?,fields_json=?,terms_json=?,evidence_id=?,opens_at=?,closes_at=?,duplicate_of=NULL,version=version+1 WHERE id=?",b.donorId,JSON.stringify(meta),JSON.stringify(terms),evidence?.id||o.evidence_id,evidence?evidence.opens_at:o.opens_at,evidence?evidence.closes_at:o.closes_at,id),store.audit(s.user,'workflow.review',id,['approved'],b.expectedVersion+1),store.bump()];
+  const statements=[store.q("UPDATE opportunities SET review_status='approved',donor_id=?,fields_json=?,terms_json=?,evidence_id=?,opens_at=?,closes_at=?,duplicate_of=NULL,version=version+1 WHERE id=?",b.donorId||null,JSON.stringify(meta),JSON.stringify(terms),evidence?.id||o.evidence_id,evidence?evidence.opens_at:o.opens_at,evidence?evidence.closes_at:o.closes_at,id),store.audit(s.user,'workflow.review',id,['approved'],b.expectedVersion+1),store.bump()];
   await store.atomic(statements,guard);return {ok:true,version:b.expectedVersion+1};
  }
  const eventMatch=/^\/api\/workflow\/applications\/([a-f0-9]{32})\/events$/.exec(path);

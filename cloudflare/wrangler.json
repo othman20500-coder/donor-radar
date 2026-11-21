@@ -24,7 +24,7 @@
         "APP_NAME": "donor-radar-v13-dev",
         "PUBLIC_URL": "https://donor-radar-v13-dev.othman20500.workers.dev",
         "LIVE_SCAN_ENABLED": "true",
-        "REVIEWED_SOURCE_URLS": "[\"https://www.gov.uk/guidance/find-government-grants\",\"https://asf.gov.sa/ar/services/*\"]"
+        "REVIEWED_SOURCE_URLS": "[\"https://www.gov.uk/guidance/find-government-grants\",\"https://asf.gov.sa/ar/services/*\",\"https://almonasib.sa/%D8%B5%D9%81%D8%AD%D8%A9-%D8%A5%D8%B9%D9%84%D8%A7%D9%86%D8%A7%D8%AA-%D8%A7%D9%84%D8%AC%D9%87%D8%A7%D8%AA-%D8%A7%D9%84%D9%85%D8%A7%D9%86%D8%AD%D8%A9/*\"]"
       },
       "d1_databases": [
         {

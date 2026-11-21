@@ -174,3 +174,29 @@ test('news: every role reads the time-ordered feed with labels; rejected items a
  assert.ok(d.items.every((i,k,a)=>k===0||a[k-1].createdAt>=i.createdAt),'newest first');assert.ok(Array.isArray(d.sources)&&Array.isArray(d.alerts)&&Array.isArray(d.donors));
  assert.equal((await request('/api/news')).status,401);assert.equal((await request('/news',{session:viewer})).status,200);
 });
+
+test('extraction: Arabic-month dates with يبدأ/ينتهي/حتى labels, wider announcement vocabulary, prefix rule covers its base',async()=>{
+ const {extractDates,arabicIso}=await import('../vendor/extraction.cjs'),{GRANT}=await import('../vendor/discovery.cjs'),{isAllowed}=await import('../monitor.mjs');
+ assert.equal(arabicIso('الثلاثاء ٢٤ نوفمبر ٢٠٢٦م'),'2026-11-24');assert.equal(arabicIso('11 نوفمبر 2026'),'2026-11-11');assert.equal(arabicIso('31 فبراير 2026'),null);
+ const d=extractDates('<html><body><h1>أبناء علي الماجد الخيرية تعلن فتح باب التسجيل على بوابتها</h1><p>ابتداء من الأربعاء ١١ نوفمبر وحتى الثلاثاء ٢٤ نوفمبر ٢٠٢٦م</p><p>يبدأ: 11 نوفمبر 2026</p><p>ينتهي: 24 نوفمبر 2026</p></body></html>');
+ assert.equal(d.opensAt,'2026-11-11');assert.equal(d.closesAt,'2026-11-24');assert.deepEqual(d.warnings,[]);assert.ok(d.evidence.length>=2);
+ const legacy=extractDates('<p>deadline: 2027-01-01</p><p>آخر موعد للتقديم: 2027-01-01</p>');assert.equal(legacy.closesAt,'2027-01-01');
+ assert.ok(GRANT.test('أبناء علي الماجد الخيرية تعلن فتح باب التسجيل على بوابتها'));assert.ok(GRANT.test('بدء استقبال طلبات الرعاية'));assert.ok(!GRANT.test('تسجيل الدخول إلى الحساب'));
+ assert.ok(isAllowed(['https://a.example/news/*'],'https://a.example/news'));assert.ok(!isAllowed(['https://a.example/news/*'],'https://a.example/newsroom'));
+});
+
+test('review: a funder outside the directory can be approved by name; empty name and id are refused',async()=>{
+ const admin=await login('admin');await db.prepare("INSERT INTO opportunities(id,source_id,title,source_url,created_at) VALUES('outside-1','feed-a','مؤسسة غير مدرجة تعلن فتح باب التسجيل','https://feed.example.org/news/outside',?)").bind(at()).run();
+ const base={decision:'approved',expectedVersion:0,topics:['youth'],noEvidenceReason:'إعلان تسجيل بلا تاريخ إغلاق منشور في المصدر'};
+ let r=await request('/api/workflow/opportunities/outside-1',{method:'POST',session:admin,body:{...base,donorId:''}});assert.equal(r.status,400);assert.equal((await r.json()).code,'DONOR_REQUIRED');
+ r=await request('/api/workflow/opportunities/outside-1',{method:'POST',session:admin,body:{...base,donorName:'مؤسسة أبناء علي الماجد الخيرية'}});assert.equal(r.status,200,await r.clone().text());
+ const w=await (await request('/api/workflow',{session:admin})).json();const o=w.opportunities.find(x=>x.id==='outside-1');assert.equal(o.donor_id,null);assert.equal(o.donorName,'مؤسسة أبناء علي الماجد الخيرية');
+ const st=await (await request('/api/state',{session:admin})).json();assert.equal(st.discoveries.find(x=>x.id==='outside-1').funder,'مؤسسة أبناء علي الماجد الخيرية');
+ const n=await (await request('/api/news',{session:admin})).json();assert.equal(n.items.find(x=>x.id==='outside-1').donor,'مؤسسة أبناء علي الماجد الخيرية');
+});
+
+test('discovery: listing status words and truncated teasers are stripped from candidate titles',async()=>{
+ const {discoverLinks}=await import('../vendor/discovery.cjs');
+ const html='<a href="/x/159">مفتوح أبناء علي الماجد الخيرية تعلن فتح باب التسجيل على بوابتها &amp;nbsp;تدعو &amp;nbs...</a><a href="/x/158">منتهٍ سليمان الراجحي الخيرية تعلن عن فترة المنح الأولى</a>';
+ const l=discoverLinks(html,'https://a.example/x');assert.equal(l.length,2);assert.ok(l[0].title.startsWith('أبناء علي الماجد'),l[0].title);assert.ok(!/&nbs/.test(l[0].title)&&!/\.{3}$/.test(l[0].title),l[0].title);assert.ok(l[1].title.startsWith('سليمان الراجحي'),l[1].title);
+});
